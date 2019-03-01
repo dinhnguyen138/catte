@@ -1,9 +1,11 @@
 package rooms
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 
+	"../constants"
 	"../models"
 	"github.com/firstrow/tcp_server"
 )
@@ -11,7 +13,8 @@ import (
 type Room struct {
 	players        [6]*Player
 	numPlayer      int
-	currRow        int
+	finalRowPlayer int
+	currentRow     int
 	normalRowCount int
 	finalRowCount  int
 	topCardIndex   int
@@ -20,9 +23,9 @@ type Room struct {
 }
 
 type Player struct {
-	id           string
+	userInfo     models.UserInfo
 	index        int
-	ready        bool
+	inGame       bool
 	finalist     bool
 	disconnected bool
 	client       *tcp_server.Client
@@ -32,35 +35,58 @@ type RoomManager struct {
 	rooms map[string]*Room
 }
 
-func (room *Room) JoinRoom(id string, c *tcp_server.Client) {
-	nilIndex := -1
+func (player *Player) sendCommand(cmd models.Command) {
+	data, _ := json.Marshal(cmd)
+	player.client.SendBytes(data)
+}
+
+func (room *Room) JoinRoom(user string, c *tcp_server.Client) {
+	var userInfo models.UserInfo
+	json.Unmarshal([]byte(user), &userInfo)
+	index := -1
 	joint := false
+
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i] == nil {
-			nilIndex = i
-		} else if room.players[i].id == id {
-			room.players[i].disconnected = true
+			index = i
+		} else if room.players[i].userInfo.UUID == userInfo.UUID {
+			room.players[i].disconnected = false
 			room.players[i].client = c
+			room.players[i].index = i
+			index = i
 			joint = true
+			break
 		}
 	}
-	if joint == false && nilIndex != -1 {
+	if joint == false && index != -1 {
+
 		player := &Player{}
-		player.index = nilIndex
+		player.userInfo = userInfo
+		player.index = index
 		player.client = c
-		player.ready = false
-		room.players[nilIndex] = player
+		player.inGame = false
+		player.disconnected = false
+		room.players[index] = player
 		room.numPlayer++
 		if room.numPlayer == 1 {
-			room.hostIndex = nilIndex
+			room.hostIndex = index
 		}
 	}
+
+	// send list of current players to all player to update
+	for i := 0; i < len(room.players); i++ {
+		if room.players[i] != nil {
+			// Construct list of player
+			// room.players[i].client.SendBytes(...)
+		}
+	}
+
 }
 
 func (room *Room) LeaveRoom(id string) (empty bool) {
 	changeHost := false
 	for i := 0; i < len(room.players); i++ {
-		if room.players[i].id == id {
+		if room.players[i].userInfo.UUID == id {
 			if room.players[i].index == room.hostIndex {
 				changeHost = true
 			}
@@ -70,12 +96,19 @@ func (room *Room) LeaveRoom(id string) (empty bool) {
 	}
 	if room.numPlayer == 0 {
 		return true
-	} else {
+	} else if changeHost {
 		for i := 0; i < len(room.players); i++ {
 			if room.players[i] != nil {
 				room.hostIndex = i
-				// Inform to update host
 			}
+		}
+	}
+
+	// send list of current players to all player to update
+	for i := 0; i < len(room.players); i++ {
+		if room.players[i] != nil {
+			// Construct list of player
+			// room.players[i].client.SendBytes(...)
 		}
 	}
 	return false
@@ -83,30 +116,32 @@ func (room *Room) LeaveRoom(id string) (empty bool) {
 
 func (room *Room) HandleCommand(command models.Command) {
 	switch command.Action {
-	case "LEAVE":
+	case constants.LEAVE:
 		roomEmpty := room.LeaveRoom(command.Id)
 		if roomEmpty {
 			// Remove room
 		}
 		break
-	case "DEAL":
+	case constants.DEAL:
 		room.newGame()
 		break
-	case "PLAY":
-		room.play(command.Id, command.Card)
+	case constants.PLAY:
+		room.play(command.Id, command.Data)
 		break
-	case "FOLD":
-		room.fold(command.Id, command.Card)
+	case constants.FOLD:
+		room.fold(command.Id, command.Data)
 		break
-	case "SHOWFRONT":
-		room.showFront(command.Id, command.Card)
+	case constants.FRONT:
 		break
-	case "SHOWBACK":
+	case constants.BACK:
 		break
 	}
 }
 
 func (roomManager *RoomManager) FindRoom(id string) (room *Room) {
+	if roomManager.rooms == nil {
+		roomManager.rooms = map[string]*Room{}
+	}
 	if _, ok := roomManager.rooms[id]; ok {
 		return roomManager.rooms[id]
 	}
@@ -136,7 +171,7 @@ func (room *Room) newGame() {
 	pos := 0
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i] != nil {
-			room.players[i].ready = true
+			room.players[i].inGame = true
 			slice := deck[pos : pos+6]
 			pos += 7
 			fmt.Println(slice)
@@ -148,62 +183,66 @@ func (room *Room) newGame() {
 
 func (room *Room) play(id string, card string) {
 	for i := 0; i < len(room.players); i++ {
-		if room.players[i].id == id {
+		if room.players[i].userInfo.UUID == id {
 			room.topCard = card
-			room.nextRowIndex = i
-			room.rowCount++
+			room.topCardIndex = i
+			room.normalRowCount++
 		}
 	}
 
 	// Send card play to all player
-	if room.rowCount == room.num {
-		room.rowCount = 0
-		room.row++
+	if room.normalRowCount == room.numPlayer {
+		room.normalRowCount = 0
+		room.currentRow++
 		// Note that player is allow to go final row
+		if room.currentRow == 5 {
+			// Inform player that is out
+		}
 		// Inform lastRow top player to play
 	}
 }
 
 func (room *Room) fold(id string, card string) {
-	room.rowCount++
+	room.normalRowCount++
 	// Send card fold to all player
-	if room.rowCount == room.num {
-		room.rowCount = 0
-		room.row++
+	if room.normalRowCount == room.numPlayer {
+		room.normalRowCount = 0
+		room.currentRow++
 		// Note that player is allow to go final row
-		if room.row == 5 {
+		if room.currentRow == 5 {
 			// Inform player that is out
 		}
 		// Inform lastRow top player to all player
 	}
 }
 
-func (room *Room) showFront(id string, frontCard string) {
-	if index == room.nextRowIndex {
+func (room *Room) showFront(index int, frontCard string) {
+	room.finalRowCount++
+	if index == room.topCardIndex {
 		room.topCard = frontCard
-		room.nextRowIndex = index
+		room.topCardIndex = index
 	} else if larger(room.topCard, frontCard) == true {
 		room.topCard = frontCard
-		room.nextRowIndex = index
+		room.topCardIndex = index
 	}
 	// Inform all player the current player's front card
-	if room.rowCount == room.num {
-		room.rowCount = 0
-		room.row++
+	if room.finalRowCount == room.finalRowPlayer {
+		room.finalRowCount = 0
+		room.currentRow++
 	}
 }
 
 func (room *Room) showBack(index int, backCard string) {
-	room.rowCount++
-	if index == room.nextRowIndex {
+	room.finalRowCount++
+	if index == room.topCardIndex {
 		room.topCard = backCard
-		room.nextRowIndex = index
+		room.topCardIndex = index
 	} else if larger(room.topCard, backCard) == true {
 		room.topCard = backCard
-		room.nextRowIndex = index
+		room.topCardIndex = index
 	}
 	// Inform all player the current player's back card
-	if room.rowCount == room.num {
+	if room.finalRowCount == room.finalRowPlayer {
 		//Calculate result
 		//Adjust money
 	}

@@ -8,15 +8,18 @@ import (
 	"os"
 	"time"
 
+	"../../db"
 	"../../models"
 	"../../settings"
+	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type JWTAuthenticationBackend struct {
 	privateKey *rsa.PrivateKey
-	PublicKey  *rsa.PublicKey
+	publicKey  *rsa.PublicKey
+	middleWare *jwtmiddleware.JWTMiddleware
 }
 
 const (
@@ -30,7 +33,12 @@ func InitJWTAuthenticationBackend() *JWTAuthenticationBackend {
 	if authBackendInstance == nil {
 		authBackendInstance = &JWTAuthenticationBackend{
 			privateKey: getPrivateKey(),
-			PublicKey:  getPublicKey(),
+			publicKey:  getPublicKey(),
+			middleWare: jwtmiddleware.New(jwtmiddleware.Options{
+				ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
+					return getPublicKey(), nil
+				},
+				SigningMethod: jwt.SigningMethodRS512}),
 		}
 	}
 
@@ -50,20 +58,13 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 	return tokenString, nil
 }
 func (backend *JWTAuthenticationBackend) Authenticate(user *models.User) bool {
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("testing"), 10)
-
-	testUser := models.User{
-		UUID:     "1",
-		Username: "haku",
-		Password: string(hashedPassword),
-	}
-
-	if user.Username == testUser.Username && bcrypt.CompareHashAndPassword([]byte(testUser.Password), []byte(user.Password)) == nil {
-		user.UUID = testUser.UUID
+	db := db.InitDB()
+	foundUser := db.FindUserByName(user.Username)
+	if foundUser != nil && bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password)) == nil {
+		user.UUID = foundUser.UUID
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 func (backend *JWTAuthenticationBackend) getTokenRemainingValidity(timestamp interface{}) int {
 	if validity, ok := timestamp.(float64); ok {

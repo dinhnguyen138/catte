@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "catte_backend"
+		},
+		{
+			"path": "catte_client"
 		}
 	],
 	"settings": {}

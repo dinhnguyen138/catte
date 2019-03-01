@@ -49,17 +49,18 @@ func SetAuthenticationRoutes(router *mux.Router) *mux.Router {
 		)).Methods("GET")
 
 	router.Handle(
+		"/get-info",
+		negroni.New(
+			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
+			negroni.HandlerFunc(controllers.GetInfo),
+		)).Methods("GET")
+
+	router.Handle(
 		"/leave-room/{id}",
 		negroni.New(
 			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
 			negroni.HandlerFunc(controllers.LeaveRoom),
 		)).Methods("GET")
 
-	router.Handle(
-		"/ws/{id}",
-		negroni.New(
-			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
-			negroni.HandlerFunc(controllers.PlayerJoin),
-		)).Methods("GET")
 	return router
 }
