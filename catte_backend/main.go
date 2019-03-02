@@ -28,7 +28,6 @@ func main() {
 		} else {
 			if cmd.Action == constants.JOIN {
 				controllers.JoinRoom(cmd, c)
-				fmt.Println(cmd)
 				return
 			}
 			controllers.HandleCommand(cmd)

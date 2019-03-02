@@ -15,6 +15,7 @@ type Room struct {
 	numPlayer      int
 	finalRowPlayer int
 	currentRow     int
+	rowCount int
 	normalRowCount int
 	finalRowCount  int
 	topCardIndex   int
@@ -23,11 +24,12 @@ type Room struct {
 }
 
 type Player struct {
-	userInfo     models.UserInfo
-	index        int
-	inGame       bool
-	finalist     bool
-	disconnected bool
+	UserId       string `json:"uuid"`
+	NumCard      int    `json:"numcard"`
+	Index        int    `json:"index"`
+	InGame       bool   `json:"ingame"`
+	Finalist     bool   `json:"finalist"`
+	Disconnected bool   `json:"disconnected"`
 	client       *tcp_server.Client
 }
 
@@ -35,37 +37,37 @@ type RoomManager struct {
 	rooms map[string]*Room
 }
 
-func (player *Player) sendCommand(cmd models.Command) {
+func (player *Player) sendCommand(cmd models.ResponseCommand) {
 	data, _ := json.Marshal(cmd)
-	player.client.SendBytes(data)
+	player.client.Send(string(data) + "\n")
 }
 
-func (room *Room) JoinRoom(user string, c *tcp_server.Client) {
-	var userInfo models.UserInfo
-	json.Unmarshal([]byte(user), &userInfo)
+func (room *Room) JoinRoom(userId string, c *tcp_server.Client) {
 	index := -1
 	joint := false
 
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i] == nil {
 			index = i
-		} else if room.players[i].userInfo.UUID == userInfo.UUID {
-			room.players[i].disconnected = false
-			room.players[i].client = c
-			room.players[i].index = i
-			index = i
-			joint = true
-			break
+		} else {
+			fmt.Println(room.players[i].UserId)
+			if room.players[i].UserId == userId {
+				room.players[i].Disconnected = false
+				room.players[i].client = c
+				room.players[i].Index = i
+				index = i
+				joint = true
+				break
+			}
 		}
 	}
 	if joint == false && index != -1 {
-
 		player := &Player{}
-		player.userInfo = userInfo
-		player.index = index
+		player.UserId = userId
+		player.Index = index
 		player.client = c
-		player.inGame = false
-		player.disconnected = false
+		player.InGame = false
+		player.Disconnected = false
 		room.players[index] = player
 		room.numPlayer++
 		if room.numPlayer == 1 {
@@ -74,20 +76,24 @@ func (room *Room) JoinRoom(user string, c *tcp_server.Client) {
 	}
 
 	// send list of current players to all player to update
+	players, _ := json.Marshal(room.players)
+	fmt.Printf("%s\n", players)
+	command := models.ResponseCommand{constants.PLAYERS, string(players)}
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i] != nil {
 			// Construct list of player
-			// room.players[i].client.SendBytes(...)
+			room.players[i].sendCommand(command)
 		}
 	}
 
+	fmt.Println(room)
 }
 
 func (room *Room) LeaveRoom(id string) (empty bool) {
 	changeHost := false
 	for i := 0; i < len(room.players); i++ {
-		if room.players[i].userInfo.UUID == id {
-			if room.players[i].index == room.hostIndex {
+		if room.players[i].UserId == id {
+			if room.players[i].Index == room.hostIndex {
 				changeHost = true
 			}
 			room.players[i] = nil
@@ -105,10 +111,12 @@ func (room *Room) LeaveRoom(id string) (empty bool) {
 	}
 
 	// send list of current players to all player to update
+	players, _ := json.Marshal(room.players)
+	fmt.Printf("%s\n", players)
+	command := models.ResponseCommand{constants.PLAYERS, string(players)}
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i] != nil {
-			// Construct list of player
-			// room.players[i].client.SendBytes(...)
+			room.players[i].sendCommand(command)
 		}
 	}
 	return false
@@ -131,8 +139,6 @@ func (room *Room) HandleCommand(command models.Command) {
 	case constants.FOLD:
 		room.fold(command.Id, command.Data)
 		break
-	case constants.FRONT:
-		break
 	case constants.BACK:
 		break
 	}
@@ -153,7 +159,7 @@ func (roomManager *RoomManager) FindClient(c *tcp_server.Client) (room *Room, in
 	for _, v := range roomManager.rooms {
 		for i := 0; i < len(v.players); i++ {
 			if v.players[i].client == c {
-				return v, v.players[i].index
+				return v, v.players[i].Index
 			}
 		}
 	}
@@ -161,7 +167,7 @@ func (roomManager *RoomManager) FindClient(c *tcp_server.Client) (room *Room, in
 }
 
 func (room *Room) Disconnect(index int) {
-	room.players[index].disconnected = true
+	room.players[index].Disconnected = true
 	// Start reconnect timer
 }
 
@@ -171,65 +177,96 @@ func (room *Room) newGame() {
 	pos := 0
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i] != nil {
-			room.players[i].inGame = true
+			room.players[i].InGame = true
 			slice := deck[pos : pos+6]
 			pos += 7
 			fmt.Println(slice)
 			// send slice to client
-			// room.players[i].client.send
+			cards, _ := json.Marshal(slice)
+			command := models.ResponseCommand{constants.CARDS, string(cards)}
+			room.players[i].sendCommand(command)
 		}
 	}
 }
 
 func (room *Room) play(id string, card string) {
+	fmt.Println("Top card" + card)
+	playData := models.PlayData{id, card}
+	play, _ := json.Marshal(playData)
+	command := models.ResponseCommand{constants.PLAY, string(play)}
 	for i := 0; i < len(room.players); i++ {
-		if room.players[i].userInfo.UUID == id {
+		if room.players[i].UserId == id {
 			room.topCard = card
 			room.topCardIndex = i
-			room.normalRowCount++
+			room.rowCount++
 		}
+		room.players[i].sendCommand(command)
 	}
 
 	// Send card play to all player
-	if room.normalRowCount == room.numPlayer {
-		room.normalRowCount = 0
-		room.currentRow++
-		// Note that player is allow to go final row
-		if room.currentRow == 5 {
-			// Inform player that is out
+	if room.rowCount == room.numPlayer {
+		room.rowCount = 0
+		if room.rowCount < 5 {
+			room.currentRow++
+			// Note that player is allow to go final row
+			room.players[room.topCardIndex].Finalist = true
+			if room.currentRow == 5 {
+				room.finalRowPlayer = 0
+				// Inform player that is out
+				for i := 0; i < len(room.players); i++ {
+					command := models.ResponseCommand{Action: constants.ELIMINATED}
+					if room.players[i].Finalist == false {
+						room.players[i].sendCommand(command)
+					} else {
+						room.finalRowPlayer ++
+					}
+				}
+			}
+			// Inform lastRow top player to play
+			command := models.ResponseCommand{constants.STARTROW, room.players[room.topCardIndex].UserId}
+			for i := 0; i < len(room.players); i++ {
+				room.players[i].sendCommand(command)
+			}
 		}
-		// Inform lastRow top player to play
+	}
+	if room.rowCount == room.finalRowPlayer {
+
 	}
 }
 
 func (room *Room) fold(id string, card string) {
+	playData := models.PlayData{id, card}
+	play, _ := json.Marshal(playData)
+	command := models.ResponseCommand{constants.FOLD, string(play)}
+	for i := 0; i < len(room.players); i++ {
+		room.players[i].sendCommand(command)
+	}
 	room.normalRowCount++
 	// Send card fold to all player
 	if room.normalRowCount == room.numPlayer {
 		room.normalRowCount = 0
-		room.currentRow++
-		// Note that player is allow to go final row
-		if room.currentRow == 5 {
-			// Inform player that is out
+		if room.currentRow < 5 {
+			room.currentRow++
+			// Note that player is allow to go final row
+			if room.currentRow == 5 {
+				// Inform player that is out
+				room.finalRowPlayer
+				for i := 0; i < len(room.players); i++ {
+					command := models.ResponseCommand{Action: constants.ELIMINATED}
+					if room.players[i].Finalist == false {
+						room.players[i].sendCommand(command)
+					}
+				}
+			}
+			// Inform lastRow top player to play
+			command := models.ResponseCommand{constants.STARTROW, room.players[room.topCardIndex].UserId}
+			for i := 0; i < len(room.players); i++ {
+				room.players[i].sendCommand(command)
+			}
 		}
-		// Inform lastRow top player to all player
 	}
-}
 
-func (room *Room) showFront(index int, frontCard string) {
-	room.finalRowCount++
-	if index == room.topCardIndex {
-		room.topCard = frontCard
-		room.topCardIndex = index
-	} else if larger(room.topCard, frontCard) == true {
-		room.topCard = frontCard
-		room.topCardIndex = index
-	}
-	// Inform all player the current player's front card
-	if room.finalRowCount == room.finalRowPlayer {
-		room.finalRowCount = 0
-		room.currentRow++
-	}
+	if room.
 }
 
 func (room *Room) showBack(index int, backCard string) {

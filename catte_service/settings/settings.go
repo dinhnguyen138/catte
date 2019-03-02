@@ -25,7 +25,6 @@ func LoadSettings() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(dir)
 	content, err := ioutil.ReadFile("settings/env.json")
 	if err != nil {
 		fmt.Println("Error while reading config file", err)

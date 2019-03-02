@@ -7,6 +7,16 @@ type Command struct {
 	Data   string `json:"data"`
 }
 
+type ResponseCommand struct {
+	Action string `json:"action"`
+	Data   string `json:"data"`
+}
+
+type PlayData struct {
+	Id   string `json:"id"`
+	Data string `json:"data"`
+}
+
 type UserInfo struct {
 	UUID     string  `json:"uuid" form:"-"`
 	Username string  `json:"username" form:"username"`
