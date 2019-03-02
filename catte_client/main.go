@@ -51,15 +51,17 @@ func readLine(reader *bufio.Reader) string {
 
 func run(conn net.Conn) {
 	for {
-		// read in input from stdin
-		reader := bufio.NewReader(conn)
-		text, err := reader.ReadString('\n')
-		// send to socket
-		if err != nil {
-			fmt.Println("Server is close")
-			conn.Close()
-			os.Exit(0)
+		scanner := bufio.NewScanner(conn)
+
+		for {
+			ok := scanner.Scan()
+			text := scanner.Text()
+			fmt.Println("Message from server: " + text)
+
+			if !ok {
+				fmt.Println("Reached EOF on server connection.")
+				break
+			}
 		}
-		fmt.Println("Message from server: " + text)
 	}
 }
