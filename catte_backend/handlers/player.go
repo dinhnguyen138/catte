@@ -9,11 +9,11 @@ import (
 )
 
 type Player struct {
-	Id           string `json:"id"`
-	NumCard      int    `json:"numcard"`
-	Index        int    `json:"index"`
-	InGame       bool   `json:"ingame"`
-	Finalist     bool   `json:"finalist"`
+	Info         models.PlayerInfo `json:"info"`
+	NumCard      int               `json:"numcard"`
+	Index        int               `json:"index"`
+	InGame       bool              `json:"ingame"`
+	Finalist     bool              `json:"finalist"`
 	finalCard    string
 	Disconnected bool `json:"disconnected"`
 	client       *tcp_server.Client

@@ -27,7 +27,7 @@ func (roomManager *RoomManager) FindClient(c *tcp_server.Client) (room *Room, id
 	for _, v := range roomManager.rooms {
 		for i := 0; i < len(v.Players); i++ {
 			if v.Players[i] != nil && v.Players[i].client == c {
-				return v, v.Players[i].Id
+				return v, v.Players[i].Info.Id
 			}
 		}
 	}

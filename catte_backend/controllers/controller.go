@@ -21,7 +21,7 @@ func HandleCommand(command models.Command) {
 
 func JoinRoom(command models.Command, c *tcp_server.Client) {
 	room := roomManager.FindRoom(command.Room)
-	room.JoinRoom(command.Id, c)
+	room.JoinRoom(command.Id, command.Data, c)
 }
 
 func LeaveRoom(command models.Command) {

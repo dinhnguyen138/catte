@@ -20,11 +20,13 @@ type Room struct {
 	hostIndex      int
 }
 
-func (room *Room) JoinRoom(userId string, c *tcp_server.Client) {
+func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 	joint := false
+	var playerInfo models.PlayerInfo
+	json.Unmarshal([]byte(data), &playerInfo)
 
 	for i := 0; i < len(room.Players); i++ {
-		if room.Players[i].Id == userId {
+		if room.Players[i].Info.Id == userId {
 			room.Players[i].Disconnected = false
 			room.Players[i].client = c
 			joint = true
@@ -47,7 +49,7 @@ func (room *Room) JoinRoom(userId string, c *tcp_server.Client) {
 			}
 		}
 		player := &Player{}
-		player.Id = userId
+		player.Info = playerInfo
 		player.Index = index
 		player.client = c
 		player.InGame = false
@@ -73,7 +75,7 @@ func (room *Room) JoinRoom(userId string, c *tcp_server.Client) {
 func (room *Room) LeaveRoom(id string) {
 	changeHost := false
 	for i := 0; i < len(room.Players); i++ {
-		if room.Players[i].Id == id {
+		if room.Players[i].Info.Id == id {
 			if room.Players[i].Index == room.hostIndex {
 				changeHost = true
 			}
@@ -119,7 +121,7 @@ func (room *Room) HandleCommand(command models.Command) {
 
 func (room *Room) Disconnect(id string, kickUser func(roomId string, userId string)) {
 	for i := 0; i < len(room.Players); i++ {
-		if room.Players[i].Id == id {
+		if room.Players[i].Info.Id == id {
 			fmt.Println("Find disconnected user " + id)
 			room.Players[i].Disconnected = true
 			kickUser(room.Id, id)
@@ -162,7 +164,7 @@ func (room *Room) play(id string, card string) {
 		play, _ := json.Marshal(playData)
 		command := models.ResponseCommand{constants.PLAY, string(play)}
 		for i := 0; i < len(room.Players); i++ {
-			if room.Players[i].Id == id {
+			if room.Players[i].Info.Id == id {
 				room.Players[i].NumCard--
 				room.topCard = card
 				room.topCardIndex = i
@@ -174,7 +176,7 @@ func (room *Room) play(id string, card string) {
 		play, _ := json.Marshal(playData)
 		command := models.ResponseCommand{constants.BACK, string(play)}
 		for i := 0; i < len(room.Players); i++ {
-			if room.Players[i].Id == id {
+			if room.Players[i].Info.Id == id {
 				room.Players[i].finalCard = card
 			}
 			room.Players[i].sendCommand(command)
@@ -208,7 +210,7 @@ func (room *Room) play(id string, card string) {
 			}
 			// Inform lastRow top player to play
 			fmt.Println("SSSSS")
-			command := models.ResponseCommand{constants.STARTROW, room.Players[room.topCardIndex].Id}
+			command := models.ResponseCommand{constants.STARTROW, room.Players[room.topCardIndex].Info.Id}
 			for i := 0; i < len(room.Players); i++ {
 				if room.Players[i] != nil {
 					fmt.Println("Send STARTROW to ", i)
@@ -241,7 +243,7 @@ func (room *Room) play(id string, card string) {
 					room.topCard = room.Players[i].finalCard
 				}
 			}
-			command := models.ResponseCommand{constants.WINNER, room.Players[room.topCardIndex].Id}
+			command := models.ResponseCommand{constants.WINNER, room.Players[room.topCardIndex].Info.Id}
 			for i := 0; i < len(room.Players); i++ {
 				if room.Players[i] != nil {
 					room.Players[i].sendCommand(command)
@@ -283,7 +285,7 @@ func (room *Room) fold(id string, card string) {
 				fmt.Println("Final row player %v", room.finalRowPlayer)
 			}
 			// Inform lastRow top player to play
-			command := models.ResponseCommand{constants.STARTROW, room.Players[room.topCardIndex].Id}
+			command := models.ResponseCommand{constants.STARTROW, room.Players[room.topCardIndex].Info.Id}
 			for i := 0; i < len(room.Players); i++ {
 				room.Players[i].sendCommand(command)
 			}

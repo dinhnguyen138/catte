@@ -17,7 +17,7 @@ type PlayData struct {
 	Data string `json:"data"`
 }
 
-type UserInfo struct {
+type PlayerInfo struct {
 	Id       string  `json:"id" form:"-"`
 	Username string  `json:"username" form:"username"`
 	Amount   float32 `json:"amount" form:"amount"`
