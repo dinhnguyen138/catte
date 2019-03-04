@@ -18,7 +18,7 @@ type PlayData struct {
 }
 
 type UserInfo struct {
-	UUID     string  `json:"uuid" form:"-"`
+	Id       string  `json:"id" form:"-"`
 	Username string  `json:"username" form:"username"`
 	Amount   float32 `json:"amount" form:"amount"`
 }
