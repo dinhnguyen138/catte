@@ -60,6 +60,7 @@ func run(conn net.Conn) {
 
 			if !ok {
 				fmt.Println("Reached EOF on server connection.")
+				os.Exit(0)
 				break
 			}
 		}

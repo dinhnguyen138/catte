@@ -16,6 +16,7 @@ func main() {
 
 	server.OnNewClient(func(c *tcp_server.Client) {
 		fmt.Println("Client connect")
+		fmt.Println(c)
 	})
 	server.OnNewMessage(func(c *tcp_server.Client, message string) {
 		fmt.Println(message)
@@ -30,12 +31,17 @@ func main() {
 				controllers.JoinRoom(cmd, c)
 				return
 			}
+			if cmd.Action == constants.LEAVE {
+				controllers.LeaveRoom(cmd)
+			}
 			controllers.HandleCommand(cmd)
 		}
 	})
 	server.OnClientConnectionClosed(func(c *tcp_server.Client, err error) {
 		// connection with client lost
 		fmt.Println("Client close")
+		fmt.Println(c)
+		controllers.HandleDisconnect(c)
 	})
 
 	server.Listen()
