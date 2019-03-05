@@ -8,6 +8,7 @@ const FOLD string = "FOLD"
 const BACK string = "BACK"
 
 const PLAYERS string = "PLAYERS"
+const NEWPLAYER string = "NEWPLAYER"
 const CARDS string = "CARDS"
 const ELIMINATED string = "ELIMINATED"
 const STARTROW string = "STARTROW"

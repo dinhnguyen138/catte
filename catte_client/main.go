@@ -46,7 +46,7 @@ func main() {
 
 func readLine(reader *bufio.Reader) string {
 	data, _ := reader.ReadString('\n')
-	return strings.TrimSuffix(data, "\n")
+	return strings.TrimSuffix(data, "\r\n")
 }
 
 func run(conn net.Conn) {

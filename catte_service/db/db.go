@@ -7,13 +7,14 @@ import (
 
 type DB struct {
 	users []models.User
+	rooms []models.Room
 }
 
 var db *DB = nil
 
 func InitDB() *DB {
 	if db == nil {
-		db = &DB{[]models.User{}}
+		db = &DB{[]models.User{}, []models.Room{}}
 		db.InitDB()
 	}
 
@@ -60,6 +61,18 @@ func (db *DB) InitDB() {
 		Amount:   1500,
 		Password: string(hashedPassword),
 	})
+
+	db.rooms = append(db.rooms,
+		models.Room{"1", true, 2, 1000},
+	)
+
+	db.rooms = append(db.rooms,
+		models.Room{"2", true, 3, 2000},
+	)
+
+	db.rooms = append(db.rooms,
+		models.Room{"3", false, 0, 1000},
+	)
 }
 
 func (db *DB) FindUserByName(username string) *models.User {
@@ -78,4 +91,8 @@ func (db *DB) FindUserById(id string) *models.User {
 		}
 	}
 	return nil
+}
+
+func (db *DB) GetRooms() []models.Room {
+	return db.rooms
 }

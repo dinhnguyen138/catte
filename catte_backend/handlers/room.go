@@ -10,14 +10,14 @@ import (
 )
 
 type Room struct {
-	Id             string
+	Id             string `json:"id"`
 	Players        []*Player
 	finalRowPlayer int
 	currentRow     int
 	rowCount       int
 	topCardIndex   int
 	topCard        string
-	hostIndex      int
+	Amount         int `json:"amount"`
 }
 
 func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
@@ -56,49 +56,43 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 		player.Disconnected = false
 		room.Players = append(room.Players, player)
 		if len(room.Players) == 1 {
-			room.hostIndex = index
+			room.Players[0].IsHost = true
+		}
+
+		// send list of current players to all player to update
+		players, _ := json.Marshal(room.Players)
+		fmt.Printf("%s\n", players)
+		command := models.ResponseCommand{constants.PLAYERS, string(players)}
+		room.Players[len(room.Players)-1].sendCommand(command)
+
+		newPlayer, _ := json.Marshal(player)
+		command = models.ResponseCommand{constants.NEWPLAYER, string(newPlayer)}
+		for i := 0; i < len(room.Players)-1; i++ {
+			room.Players[i].sendCommand(command)
 		}
 	}
-
-	// send list of current players to all player to update
-	players, _ := json.Marshal(room.Players)
-	fmt.Printf("%s\n", players)
-	command := models.ResponseCommand{constants.PLAYERS, string(players)}
-	for i := 0; i < len(room.Players); i++ {
-		// Construct list of player
-		room.Players[i].sendCommand(command)
-	}
-
-	fmt.Println(room)
 }
 
 func (room *Room) LeaveRoom(id string) {
-	changeHost := false
 	for i := 0; i < len(room.Players); i++ {
 		if room.Players[i].Info.Id == id {
-			if room.Players[i].Index == room.hostIndex {
+			changeHost := false
+			if room.Players[i].IsHost == true {
 				changeHost = true
 			}
+
 			room.Players = append(room.Players[:i], room.Players[i+1:]...)
+			if changeHost == true {
+				room.Players[0].IsHost = true
+			}
+
+			command := models.ResponseCommand{constants.LEAVE, room.Players[i].Info.Id}
+			fmt.Println(len(room.Players))
+			for i := 0; i < len(room.Players); i++ {
+				room.Players[i].sendCommand(command)
+			}
 			break
 		}
-	}
-	if len(room.Players) == 0 {
-		return
-	} else if changeHost {
-		for i := 0; i < len(room.Players); i++ {
-			if room.Players[i] != nil {
-				room.hostIndex = i
-			}
-		}
-	}
-
-	// send list of current players to all player to update
-	players, _ := json.Marshal(room.Players)
-	fmt.Printf("%s\n", players)
-	command := models.ResponseCommand{constants.PLAYERS, string(players)}
-	for i := 0; i < len(room.Players); i++ {
-		room.Players[i].sendCommand(command)
 	}
 }
 

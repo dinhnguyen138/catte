@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"os"
 )
 
 type Settings struct {
@@ -21,10 +19,6 @@ func Init() {
 }
 
 func LoadSettings() {
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
 	content, err := ioutil.ReadFile("settings/env.json")
 	if err != nil {
 		fmt.Println("Error while reading config file", err)

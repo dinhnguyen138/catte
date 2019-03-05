@@ -14,6 +14,7 @@ type Player struct {
 	Index        int               `json:"index"`
 	InGame       bool              `json:"ingame"`
 	Finalist     bool              `json:"finalist"`
+	IsHost       bool              `json:"isHost"`
 	finalCard    string
 	Disconnected bool `json:"disconnected"`
 	client       *tcp_server.Client

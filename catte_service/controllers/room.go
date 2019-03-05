@@ -6,18 +6,15 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"../db"
 	"../models"
 )
 
 var rooms []models.Room
 
 func GetRooms(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-
-	if len(rooms) == 0 {
-		rooms = []models.Room{models.Room{"1", true, 2}, models.Room{"2", true, 3}, models.Room{"3", false, 0}}
-	}
-
-	data, _ := json.Marshal(rooms)
+	db := db.InitDB()
+	data, _ := json.Marshal(db.GetRooms())
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
@@ -27,7 +24,7 @@ func JoinRoom(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	validRoom := false
 	for i := 0; i < len(rooms); i++ {
 		x := &rooms[i]
-		if x.UUID == roomid {
+		if x.Id == roomid {
 			x.IsActive = true
 			x.NoPlayer += 1
 			validRoom = true
@@ -46,7 +43,7 @@ func LeaveRoom(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	validRoom := false
 	for i := 0; i < len(rooms); i++ {
 		x := &rooms[i]
-		if x.UUID == roomid {
+		if x.Id == roomid {
 			x.IsActive = true
 			x.NoPlayer += 1
 			validRoom = true
