@@ -3,7 +3,7 @@ package models
 type Command struct {
 	Action string `json:"action"`
 	Room   string `json:"room"`
-	Id     string `json:"id"`
+	Index  int    `json:"index"`
 	Data   string `json:"data"`
 }
 
@@ -13,8 +13,8 @@ type ResponseCommand struct {
 }
 
 type PlayData struct {
-	Id   string `json:"id"`
-	Data string `json:"data"`
+	Index int    `json:"index"`
+	Data  string `json:"data"`
 }
 
 type PlayerInfo struct {

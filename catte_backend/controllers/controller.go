@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"../handlers"
 	"../models"
@@ -15,37 +15,40 @@ func Init() {
 }
 
 func HandleCommand(command models.Command) {
-	room := roomManager.FindRoom(command.Room)
+	room, _ := roomManager.FindRoom(command.Room)
 	room.HandleCommand(command)
 }
 
 func JoinRoom(command models.Command, c *tcp_server.Client) {
-	room := roomManager.FindRoom(command.Room)
-	room.JoinRoom(command.Id, command.Data, c)
+	room, isNew := roomManager.FindRoom(command.Room)
+	if isNew == true {
+		room.KickUserCallback(func(roomId string, index int) {
+			KickUser(roomId, index)
+		})
+	}
+	var playerInfo models.PlayerInfo
+	json.Unmarshal([]byte(command.Data), &playerInfo)
+	room.JoinRoom(playerInfo.Id, command.Data, c)
 }
 
 func LeaveRoom(command models.Command) {
-	room := roomManager.FindRoom(command.Room)
-	room.LeaveRoom(command.Id)
+	room, _ := roomManager.FindRoom(command.Room)
+	room.LeaveRoom(command.Index)
 	if len(room.Players) == 0 {
-		roomManager.RemoveRoom(command.Id)
+		roomManager.RemoveRoom(command.Room)
 	}
 }
 
 func HandleDisconnect(c *tcp_server.Client) {
-	room, id := roomManager.FindClient(c)
-	kickUser := func(roomId string, userId string) {
-		KickUser(roomId, userId)
-	}
+	room, index := roomManager.FindClient(c)
 	if room != nil {
-		room.Disconnect(id, kickUser)
+		room.Disconnect(index)
 	}
 }
 
-func KickUser(roomId string, userId string) {
-	fmt.Println("Kick user " + userId)
-	room := roomManager.FindRoom(roomId)
-	room.LeaveRoom(userId)
+func KickUser(roomId string, index int) {
+	room, _ := roomManager.FindRoom(roomId)
+	room.LeaveRoom(index)
 	if len(room.Players) == 0 {
 		roomManager.RemoveRoom(roomId)
 	}
