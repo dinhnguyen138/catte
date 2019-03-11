@@ -18,6 +18,7 @@ func (roomManager *RoomManager) FindRoom(id string) (room *Room, isNew bool) {
 	if _, ok := roomManager.rooms[id]; ok {
 		return roomManager.rooms[id], false
 	}
+	// TODO Load room from DB
 	roomManager.rooms[id] = &Room{Id: id, IndexUsed: []bool{false, false, false, false, false, false}}
 	return roomManager.rooms[id], true
 }

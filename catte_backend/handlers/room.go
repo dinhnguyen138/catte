@@ -14,13 +14,14 @@ import (
 type Room struct {
 	Id             string `json:"id"`
 	Players        []*Player
-	Amount         int `json:"amount"`
+	Amount         int
 	IndexUsed      []bool
 	finalRowPlayer int
 	currentRow     int
 	rowCount       int
 	topCardIndex   int
 	topCard        string
+	showCard       string
 	timer          *time.Timer
 	turn           int
 	inGame         bool
@@ -35,11 +36,9 @@ func (room *Room) HandleCommand(command models.Command) {
 	case constants.DEAL:
 		room.newGame()
 		break
-	case constants.PLAY:
-		room.play(command.Index, command.Data)
-		break
-	case constants.FOLD:
-		room.fold(command.Index, command.Data)
+	case constants.PLAY, constants.FOLD:
+		fmt.Println("XXXX")
+		room.play(command.Action, command.Index, command.Data)
 		break
 	}
 }
@@ -48,20 +47,51 @@ func (room *Room) KickUserCallback(callback func(roomId string, index int)) {
 	room.kickUser = callback
 }
 
+func (room *Room) SendBroadcast(command string, data interface{}) {
+	var stringData string
+	switch data.(type) {
+	case string:
+		stringData = data.(string)
+		break
+	default:
+		temp, _ := json.Marshal(data)
+		stringData = string(temp)
+	}
+	message := models.ResponseCommand{command, string(stringData)}
+	for i := 0; i < len(room.Players); i++ {
+		room.Players[i].sendCommand(message)
+	}
+}
+
+func (room *Room) SendUnicast(index int, command string, data interface{}) {
+	var stringData string
+	switch data.(type) {
+	case string:
+		stringData = data.(string)
+		break
+	default:
+		temp, _ := json.Marshal(data)
+		stringData = string(temp)
+	}
+	message := models.ResponseCommand{command, string(stringData)}
+	room.Players[index].sendCommand(message)
+}
+
 func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
-	joint := false
+	index := -1
 	var playerInfo models.PlayerInfo
 	json.Unmarshal([]byte(data), &playerInfo)
 
 	for i := 0; i < len(room.Players); i++ {
 		if room.Players[i].Info.Id == userId {
+			fmt.Println("Player reconnected " + userId)
 			room.Players[i].Disconnected = false
 			room.Players[i].client = c
-			joint = true
+			index = i
 			break
 		}
 	}
-	if joint == false {
+	if index == -1 {
 		var index int
 		for i := 0; i < len(room.IndexUsed); i++ {
 			if room.IndexUsed[i] == false {
@@ -82,16 +112,13 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 		}
 
 		// send list of current players to all player to update
-		players, _ := json.Marshal(room.Players)
-		fmt.Printf("%s\n", players)
-		command := models.ResponseCommand{constants.PLAYERS, string(players)}
-		room.Players[len(room.Players)-1].sendCommand(command)
-
-		newPlayer, _ := json.Marshal(player)
-		command = models.ResponseCommand{constants.NEWPLAYER, string(newPlayer)}
+		room.SendUnicast(len(room.Players)-1, constants.PLAYERS, room.Players)
 		for i := 0; i < len(room.Players)-1; i++ {
-			room.Players[i].sendCommand(command)
+			room.SendUnicast(i, constants.NEWPLAYER, player)
 		}
+	} else {
+		room.SendUnicast(index, constants.PLAYERS, room.Players)
+		room.SendUnicast(index, constants.CARDS, room.Players[index].cards)
 	}
 }
 
@@ -109,13 +136,17 @@ func (room *Room) LeaveRoom(index int) {
 				room.Players[0].IsHost = true
 			}
 
-			command := models.ResponseCommand{constants.LEAVE, strconv.Itoa(index)}
-			fmt.Println(len(room.Players))
-			for i := 0; i < len(room.Players); i++ {
-				room.Players[i].sendCommand(command)
-			}
+			room.SendBroadcast(constants.LEAVE, strconv.Itoa(index))
+			// command := models.ResponseCommand{constants.LEAVE, strconv.Itoa(index)}
+			// fmt.Println(len(room.Players))
+			// for i := 0; i < len(room.Players); i++ {
+			// 	room.Players[i].sendCommand(command)
+			// }
 			break
 		}
+	}
+	if len(room.Players) == 0 {
+		room.timer.Stop()
 	}
 }
 
@@ -137,15 +168,40 @@ func (room *Room) KickDisconnectedUser() {
 }
 
 func (room *Room) mainloop() {
-	for room.inGame == true {
+	for len(room.Players) != 0 {
 		select {
 		case <-room.timer.C:
-			fmt.Println(room.turn)
+			fmt.Print("Timeout at turn ")
+			fmt.Println(room.rowCount)
+			if room.inGame == true {
+				if room.rowCount == 0 {
+					for i := 0; i < len(room.Players); i++ {
+						if room.Players[i].Index == room.turn {
+							room.play(constants.PLAY, room.turn, room.Players[i].cards[0])
+							break
+						}
+					}
+				} else {
+					for i := 0; i < len(room.Players); i++ {
+						if room.Players[i].Index == room.turn {
+							room.play(constants.FOLD, room.turn, room.Players[i].cards[0])
+							break
+						}
+					}
+				}
+			} else {
+				room.newGame()
+			}
+
 		}
 	}
+
 }
 
 func (room *Room) newGame() {
+	if room.inGame == true {
+		return
+	}
 	room.turn = room.Players[room.topCardIndex].Index
 	room.finalRowPlayer = 0
 	room.currentRow = 0
@@ -155,7 +211,6 @@ func (room *Room) newGame() {
 	for i := 0; i < len(room.Players); i++ {
 		room.Players[i].InGame = true
 		room.Players[i].Finalist = false
-		room.Players[i].finalCard = ""
 	}
 	deck := deal()
 	deck = shuffle(deck)
@@ -163,54 +218,69 @@ func (room *Room) newGame() {
 	for i := 0; i < len(room.Players); i++ {
 		slice := deck[pos : pos+6]
 		room.Players[i].NumCard = 6
-		room.Players[i].Cards = slice
+		room.Players[i].cards = slice
 		pos += 7
 		fmt.Println(slice)
 		// send slice to client
-		cards, _ := json.Marshal(slice)
-		command := models.ResponseCommand{constants.CARDS, string(cards)}
-		room.Players[i].sendCommand(command)
-
-		command = models.ResponseCommand{constants.STARTROW, strconv.Itoa(room.turn)}
-		room.Players[i].sendCommand(command)
+		room.SendUnicast(i, constants.CARDS, slice)
+		room.SendUnicast(i, constants.START, strconv.Itoa(room.turn))
 	}
 	room.inGame = true
-	room.timer = time.NewTimer(time.Second * 30)
+	room.timer = time.NewTimer(time.Second * 20)
 	go room.mainloop()
 }
 
-func (room *Room) play(index int, card string) {
+func (room *Room) play(action string, index int, card string) {
 	room.timer.Stop()
 	room.rowCount++
+	fmt.Println(room.rowCount)
 
-	playData := models.PlayData{index, card}
-	play, _ := json.Marshal(playData)
-	command := models.ResponseCommand{constants.PLAY, string(play)}
 	for i := 0; i < len(room.Players); i++ {
 		if room.Players[i].Index == index {
-			room.Players[i].NumCard--
-			room.topCard = card
-			room.topCardIndex = i
-			for j := 0; j < len(room.Players[i].Cards); j++ {
-				if room.Players[i].Cards[j] == card {
-					room.Players[i].Cards = append(room.Players[i].Cards[:j], room.Players[i].Cards[j+1:]...)
+			found := room.Players[i].playCard(card)
+			if found == true {
+				if action == constants.PLAY && larger(card, room.topCard) {
+					room.topCard = card
+					room.topCardIndex = i
+				} else {
+					action = constants.FOLD
 				}
+			} else {
+				card = room.Players[i].cards[0]
+				action = constants.FOLD
+				room.Players[i].playCard(card)
 			}
 		}
-		room.Players[i].sendCommand(command)
 	}
+	row := room.currentRow
+	eliminatedPlayers := []int{}
+	room.turn = room.getNext(room.turn)
 
+	if room.rowCount == room.finalRowPlayer {
+		if room.currentRow == 4 {
+			room.rowCount = 0
+			room.currentRow++
+			room.turn = room.topCardIndex
+			room.showCard = room.topCard
+		} else if room.currentRow == 5 {
+			room.rowCount = 0
+			room.currentRow++
+			room.turn = room.topCardIndex
+			room.SendBroadcast(constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index))
+			room.calculateWinnerAmount(room.isDouble())
+			room.inGame = false
+		}
+	}
 	// Send card play to all player
 	if room.rowCount == len(room.Players) {
+		room.rowCount = 0
 		if room.currentRow < 4 {
-			room.rowCount = 0
 			room.currentRow++
 			// Note that player is allow to go final row
 			room.Players[room.topCardIndex].Finalist = true
 			if room.currentRow == 4 {
 				room.finalRowPlayer = 0
 				// Inform player that is out
-				eliminatedPlayers := []int{}
 				for i := 0; i < len(room.Players); i++ {
 					if room.Players[i].Finalist == false {
 						eliminatedPlayers = append(eliminatedPlayers, room.Players[i].Index)
@@ -218,130 +288,78 @@ func (room *Room) play(index int, card string) {
 						room.finalRowPlayer++
 					}
 				}
-				if len(eliminatedPlayers) > 0 {
-					data, _ := json.Marshal(eliminatedPlayers)
-					command := models.ResponseCommand{constants.ELIMINATED, string(data)}
-					for i := 0; i < len(room.Players); i++ {
-						room.Players[i].sendCommand(command)
-					}
+				if room.finalRowPlayer == 1 {
+					room.SendBroadcast(constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index))
+					room.calculateWinnerAmount(true)
+					room.inGame = false
 				}
-
-				fmt.Println("Final row player %v", room.finalRowPlayer)
 			}
 			// Inform lastRow top player to play
-			fmt.Println("SSSSS")
-			command := models.ResponseCommand{constants.STARTROW, strconv.Itoa(room.Players[room.topCardIndex].Index)}
-			for i := 0; i < len(room.Players); i++ {
-				fmt.Println("Send STARTROW to ", i)
-				room.Players[i].sendCommand(command)
-			}
-		}
-	}
-	if room.rowCount == room.finalRowPlayer {
-		if room.currentRow < 4 {
-			return
-		}
-		if room.currentRow == 4 {
-			room.rowCount = 0
-			room.currentRow++
-			// Send to player
-			command := models.ResponseCommand{constants.STARTROW, ""}
-			for i := 0; i < len(room.Players); i++ {
-				if room.Players[i] != nil {
-					room.Players[i].sendCommand(command)
-				}
-			}
-		}
-		if room.currentRow == 5 {
-			room.topCard = room.Players[room.topCardIndex].finalCard
-			// Calculate winner
-			for i := 0; i < len(room.Players); i++ {
-				if room.Players[i] != nil && room.Players[i].Finalist == true && larger(room.Players[i].finalCard, room.topCard) == true {
-					room.topCardIndex = i
-					room.topCard = room.Players[i].finalCard
-				}
-			}
-			command := models.ResponseCommand{constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index)}
-			for i := 0; i < len(room.Players); i++ {
-				if room.Players[i] != nil {
-					room.Players[i].sendCommand(command)
-				}
-			}
+			room.turn = room.topCardIndex
 		}
 	}
 
-	for {
-		i := 1
-		if room.IndexUsed[(room.turn+i)%6] == true {
-			room.turn = (room.turn + i) % 6
-			room.timer.Reset(time.Second * 30)
+	if room.inGame == true {
+		playData := models.PlayData{index, row, room.turn, (row != room.currentRow), card}
+		room.SendBroadcast(action, playData)
+
+		if len(eliminatedPlayers) > 0 {
+			room.SendBroadcast(constants.ELIMINATED, eliminatedPlayers)
 		}
-		i++
 	}
+
+	room.resetTimer()
 }
 
-func (room *Room) fold(index int, card string) {
-	room.timer.Stop()
-	room.rowCount++
-	playData := models.PlayData{index, card}
-	play, _ := json.Marshal(playData)
-	command := models.ResponseCommand{constants.FOLD, string(play)}
+func (room *Room) getNext(index int) int {
+	for i := 1; i < len(room.Players); i++ {
+		var j = (index + i) % len(room.Players)
+		fmt.Println()
+		if room.IndexUsed[j] == true {
+			return j
+		}
+	}
+	return -1
+}
+
+func (room *Room) calculateWinnerAmount(isDouble bool) {
+	amount := float32(room.Amount)
+	if isDouble == true {
+		amount *= 2
+	}
+	totalWin := float32(0)
 	for i := 0; i < len(room.Players); i++ {
-		if room.Players[i] != nil {
-			room.Players[i].sendCommand(command)
-		}
-	}
-
-	fmt.Println(room.rowCount)
-	// Send card fold to all player
-	if room.rowCount == len(room.Players) {
-		if room.currentRow < 4 {
-			room.rowCount = 0
-			room.currentRow++
-			room.Players[room.topCardIndex].Finalist = true
-			// Note that player is allow to go final row
-			if room.currentRow == 4 {
-				// Inform player that is out
-				room.finalRowPlayer = 0
-				for i := 0; i < len(room.Players); i++ {
-					command := models.ResponseCommand{Action: constants.ELIMINATED}
-					if room.Players[i].Finalist == false {
-						room.Players[i].sendCommand(command)
-					} else {
-						room.finalRowPlayer++
-					}
-				}
-				fmt.Println("Final row player %v", room.finalRowPlayer)
-			}
-			// Inform lastRow top player to play
-			command := models.ResponseCommand{constants.STARTROW, strconv.Itoa(room.Players[room.topCardIndex].Index)}
-			for i := 0; i < len(room.Players); i++ {
-				room.Players[i].sendCommand(command)
+		if room.Players[i].Index != room.topCardIndex {
+			if room.Players[i].Info.Amount < amount {
+				totalWin += room.Players[i].Info.Amount
+				room.Players[i].Info.Amount = 0
+			} else {
+				totalWin += amount
+				room.Players[i].Info.Amount -= amount
 			}
 		}
 	}
+	room.Players[room.topCardIndex].Info.Amount += totalWin * 0.8
+	// Update db
+	// Send result
+}
 
-	if room.rowCount == room.finalRowPlayer {
-		if room.currentRow < 4 {
-			return
-		}
-		if room.currentRow == 4 {
-			room.rowCount = 0
-			room.currentRow++
-			// Send to player
-			command := models.ResponseCommand{constants.STARTROW, ""}
-			for i := 0; i < len(room.Players); i++ {
-				room.Players[i].sendCommand(command)
-			}
-		}
+func (room *Room) resetTimer() {
+	var duration time.Duration
+	if room.inGame == true {
+		duration = time.Duration(20)
+	} else {
+		duration = time.Duration(30)
 	}
+	room.timer.Reset(time.Second * time.Duration(duration))
+}
 
-	for {
-		i := 1
-		if room.IndexUsed[(room.turn+i)%6] == true {
-			room.turn = (room.turn + i) % 6
-			room.timer.Reset(time.Second * 30)
-		}
-		i++
+func (room *Room) isDouble() bool {
+	leftValue := room.showCard[:len(room.showCard)-1]
+	rightValue := room.topCard[:len(room.topCard)-1]
+	if constants.CardOrder[leftValue]+constants.CardOrder[rightValue] <= 3 {
+		return true
+	} else {
+		return false
 	}
 }

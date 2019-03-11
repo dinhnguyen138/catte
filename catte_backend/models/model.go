@@ -13,8 +13,16 @@ type ResponseCommand struct {
 }
 
 type PlayData struct {
-	Index int    `json:"index"`
-	Data  string `json:"data"`
+	Index    int    `json:"index"`
+	Row      int    `json:"row"`
+	NextTurn int    `json:"nextturn"`
+	NewRow   bool   `json:"newrow"`
+	Data     string `json:"data"`
+}
+
+type WinnerCommand struct {
+	Index int        `json:"index"`
+	Data  []PlayData `json:"lastplays"`
 }
 
 type PlayerInfo struct {

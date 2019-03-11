@@ -12,7 +12,7 @@ import (
 
 func main() {
 	controllers.Init()
-	server := tcp_server.New("localhost:9999")
+	server := tcp_server.New(":9999")
 
 	server.OnNewClient(func(c *tcp_server.Client) {
 		fmt.Println("Client connect")

@@ -11,7 +11,8 @@ const PLAYERS string = "PLAYERS"
 const NEWPLAYER string = "NEWPLAYER"
 const CARDS string = "CARDS"
 const ELIMINATED string = "ELIMINATED"
-const STARTROW string = "STARTROW"
+const START string = "START"
+const SHOWBACK string = "SHOWBACK"
 const WINNER string = "WINNER"
 
 const MAXPLAYER int = 6

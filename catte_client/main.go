@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
 type Command struct {
 	Action string `json:"action"`
 	Room   string `json:"room"`
-	Id     string `json:"id"`
+	Index  int    `json:"index"`
 	Data   string `json:"data"`
 }
 
@@ -34,8 +35,12 @@ func main() {
 		com.Action = readLine(reader)
 		fmt.Print("Room: ")
 		com.Room = readLine(reader)
-		fmt.Print("Id: ")
-		com.Id = readLine(reader)
+		fmt.Print("Index: ")
+		index := readLine(reader)
+		if index != "" {
+			fmt.Println(index)
+			com.Index, _ = strconv.Atoi(index)
+		}
 		fmt.Print("Data: ")
 		com.Data = readLine(reader)
 		data, _ := json.Marshal(com)
