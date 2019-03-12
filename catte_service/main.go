@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"./db"
 	"./routers"
 	"./settings"
 	"github.com/codegangsta/negroni"
@@ -10,6 +11,8 @@ import (
 
 func main() {
 	settings.Init()
+	db.InitDB()
+	defer db.CloseDB()
 	router := routers.InitRoutes()
 	n := negroni.Classic()
 	n.UseHandler(router)

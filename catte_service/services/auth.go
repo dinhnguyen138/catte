@@ -12,10 +12,11 @@ type TokenAuthentication struct {
 	Token string `json:"token" form:"token"`
 }
 
-func Login(requestUser *models.User) (int, []byte) {
+func Login(requestUser *models.LoginMsg) (int, []byte) {
 	authBackend := authentication.InitJWTAuthenticationBackend()
-	if authBackend.Authenticate(requestUser) {
-		token, err := authBackend.GenerateToken(requestUser.UUID)
+	userid := authBackend.Authenticate(requestUser)
+	if userid != "" {
+		token, err := authBackend.GenerateToken(userid)
 		if err != nil {
 			return http.StatusInternalServerError, []byte("")
 		} else {
@@ -26,9 +27,9 @@ func Login(requestUser *models.User) (int, []byte) {
 	return http.StatusUnauthorized, []byte("")
 }
 
-func RefreshToken(requestUser *models.User) []byte {
+func RefreshToken(userid string) []byte {
 	authBackend := authentication.InitJWTAuthenticationBackend()
-	token, err := authBackend.GenerateToken(requestUser.UUID)
+	token, err := authBackend.GenerateToken(userid)
 	if err != nil {
 		panic(err)
 	}

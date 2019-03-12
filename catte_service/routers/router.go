@@ -19,6 +19,16 @@ func SetAuthenticationRoutes(router *mux.Router) *mux.Router {
 		controllers.Login,
 	).Methods("POST")
 
+	router.HandleFunc(
+		"/register",
+		controllers.Register,
+	).Methods("POST")
+
+	router.HandleFunc(
+		"/login3rd",
+		controllers.Login3rd,
+	).Methods("POST")
+
 	router.Handle(
 		"/refresh-token-auth",
 		negroni.New(
@@ -42,24 +52,10 @@ func SetAuthenticationRoutes(router *mux.Router) *mux.Router {
 		)).Methods("GET")
 
 	router.Handle(
-		"/join-room/{id}",
-		negroni.New(
-			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
-			negroni.HandlerFunc(controllers.JoinRoom),
-		)).Methods("GET")
-
-	router.Handle(
 		"/get-info",
 		negroni.New(
 			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
 			negroni.HandlerFunc(controllers.GetInfo),
-		)).Methods("GET")
-
-	router.Handle(
-		"/leave-room/{id}",
-		negroni.New(
-			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
-			negroni.HandlerFunc(controllers.LeaveRoom),
 		)).Methods("GET")
 
 	return router

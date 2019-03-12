@@ -13,7 +13,6 @@ import (
 	"../../settings"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type JWTAuthenticationBackend struct {
@@ -57,14 +56,8 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 	}
 	return tokenString, nil
 }
-func (backend *JWTAuthenticationBackend) Authenticate(user *models.User) bool {
-	db := db.InitDB()
-	foundUser := db.FindUserByName(user.Username)
-	if foundUser != nil && bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password)) == nil {
-		user.UUID = foundUser.UUID
-		return true
-	}
-	return false
+func (backend *JWTAuthenticationBackend) Authenticate(user *models.LoginMsg) string {
+	return db.AuthUser(user.UserName, user.Password)
 }
 func (backend *JWTAuthenticationBackend) getTokenRemainingValidity(timestamp interface{}) int {
 	if validity, ok := timestamp.(float64); ok {
