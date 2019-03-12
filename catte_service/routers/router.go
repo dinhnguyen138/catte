@@ -52,6 +52,13 @@ func SetAuthenticationRoutes(router *mux.Router) *mux.Router {
 		)).Methods("GET")
 
 	router.Handle(
+		"/create-room",
+		negroni.New(
+			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
+			negroni.HandlerFunc(controllers.CreateRoom),
+		)).Methods("GET")
+
+	router.Handle(
 		"/get-info",
 		negroni.New(
 			negroni.HandlerFunc(authentication.RequireTokenAuthentication),

@@ -5,3 +5,7 @@ type Room struct {
 	NoPlayer int    `json:"noplayer" form:"noplayer"`
 	Amount   int    `json:"amount"`
 }
+
+type CreateRoomMsg struct {
+	Amount int `json:"amount"`
+}
