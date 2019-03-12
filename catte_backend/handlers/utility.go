@@ -26,6 +26,9 @@ func shuffle(d models.Deck) models.Deck {
 }
 
 func larger(leftCard string, rightCard string) bool {
+	if rightCard == "" {
+		return true
+	}
 	leftValue := leftCard[:len(leftCard)-1]
 	leftSuit := leftCard[len(leftCard)-1:]
 	rightValue := rightCard[:len(rightCard)-1]

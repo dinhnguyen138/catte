@@ -118,7 +118,9 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 		}
 	} else {
 		room.SendUnicast(index, constants.PLAYERS, room.Players)
-		room.SendUnicast(index, constants.CARDS, room.Players[index].cards)
+		if room.inGame == true {
+			room.SendUnicast(index, constants.CARDS, room.Players[index].cards)
+		}
 	}
 }
 
@@ -256,47 +258,35 @@ func (room *Room) play(action string, index int, card string) {
 	eliminatedPlayers := []int{}
 	room.turn = room.getNext(room.turn)
 
-	if room.rowCount == room.finalRowPlayer {
-		if room.currentRow == 4 {
-			room.rowCount = 0
-			room.currentRow++
-			room.turn = room.topCardIndex
-			room.showCard = room.topCard
-		} else if room.currentRow == 5 {
-			room.rowCount = 0
-			room.currentRow++
-			room.turn = room.topCardIndex
-			room.SendBroadcast(constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index))
-			room.calculateWinnerAmount(room.isDouble())
-			room.inGame = false
-		}
+	if room.currentRow == 4 && room.rowCount == room.finalRowPlayer {
+		room.rowCount = 0
+		room.currentRow++
+		room.turn = room.topCardIndex
+		// Reset top card to empty after row
+		room.showCard = room.topCard
+		room.topCard = ""
 	}
 	// Send card play to all player
-	if room.rowCount == len(room.Players) {
+	if room.currentRow < 4 && room.rowCount == len(room.Players) {
 		room.rowCount = 0
-		if room.currentRow < 4 {
-			room.currentRow++
-			// Note that player is allow to go final row
-			room.Players[room.topCardIndex].Finalist = true
-			if room.currentRow == 4 {
-				room.finalRowPlayer = 0
-				// Inform player that is out
-				for i := 0; i < len(room.Players); i++ {
-					if room.Players[i].Finalist == false {
-						eliminatedPlayers = append(eliminatedPlayers, room.Players[i].Index)
-					} else {
-						room.finalRowPlayer++
-					}
-				}
-				if room.finalRowPlayer == 1 {
-					room.SendBroadcast(constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index))
-					room.calculateWinnerAmount(true)
-					room.inGame = false
+		room.currentRow++
+		// Reset top card to empty after row
+		room.topCard = ""
+		// Note that player is allow to go final row
+		room.Players[room.topCardIndex].Finalist = true
+		if room.currentRow == 4 {
+			room.finalRowPlayer = 0
+			// Inform player that is out
+			for i := 0; i < len(room.Players); i++ {
+				if room.Players[i].Finalist == false {
+					eliminatedPlayers = append(eliminatedPlayers, room.Players[i].Index)
+				} else {
+					room.finalRowPlayer++
 				}
 			}
-			// Inform lastRow top player to play
-			room.turn = room.topCardIndex
 		}
+		// Inform lastRow top player to play
+		room.turn = room.topCardIndex
 	}
 
 	if room.inGame == true {
@@ -306,6 +296,23 @@ func (room *Room) play(action string, index int, card string) {
 		if len(eliminatedPlayers) > 0 {
 			room.SendBroadcast(constants.ELIMINATED, eliminatedPlayers)
 		}
+	}
+
+	if room.finalRowPlayer == 1 {
+		room.SendBroadcast(constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index))
+		room.calculateWinnerAmount(true)
+		room.inGame = false
+	}
+
+	if room.currentRow == 5 && room.rowCount == room.finalRowPlayer {
+		room.rowCount = 0
+		room.currentRow = 0
+		room.turn = room.topCardIndex
+		// Reset top card to empty after row
+		room.topCard = ""
+		room.SendBroadcast(constants.WINNER, strconv.Itoa(room.Players[room.topCardIndex].Index))
+		room.calculateWinnerAmount(room.isDouble())
+		room.inGame = false
 	}
 
 	room.resetTimer()

@@ -19,7 +19,7 @@ type Command struct {
 
 func main() {
 
-	conn, err := net.Dial("tcp", "127.0.0.1:9999")
+	conn, err := net.Dial("tcp", "35.186.159.58:9999")
 	if err != nil {
 		fmt.Println("Server is not ready")
 		os.Exit(0)
