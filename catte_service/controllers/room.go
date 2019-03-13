@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"../db"
-	"../models"
+	"github.com/dinhnguyen138/catte/catte_service/db"
+	"github.com/dinhnguyen138/catte/catte_service/models"
 )
 
 var rooms []models.Room

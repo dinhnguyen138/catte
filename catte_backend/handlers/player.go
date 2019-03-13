@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"../models"
+	"github.com/dinhnguyen138/catte/catte_backend/models"
 	"github.com/firstrow/tcp_server"
 )
 

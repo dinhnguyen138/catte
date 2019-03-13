@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 
+	"github.com/dinhnguyen138/catte/catte_backend/db"
 	"github.com/firstrow/tcp_server"
 )
 
@@ -11,7 +12,7 @@ type RoomManager struct {
 }
 
 // Find a room in room manager, if not, create new one
-func (roomManager *RoomManager) FindRoom(id string) (room *Room, isNew bool) {
+func (roomManager *RoomManager) FindRoom(id string) (*Room, bool) {
 	if roomManager.rooms == nil {
 		roomManager.rooms = map[string]*Room{}
 	}
@@ -19,7 +20,11 @@ func (roomManager *RoomManager) FindRoom(id string) (room *Room, isNew bool) {
 		return roomManager.rooms[id], false
 	}
 	// TODO Load room from DB
-	roomManager.rooms[id] = &Room{Id: id, IndexUsed: []bool{false, false, false, false, false, false}}
+	room := db.GetRoom(id)
+	if room != nil {
+		return nil, false
+	}
+	roomManager.rooms[id] = &Room{Id: room.Id, Amount: room.Amount}
 	return roomManager.rooms[id], true
 }
 

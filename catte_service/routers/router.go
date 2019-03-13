@@ -1,9 +1,9 @@
 package routers
 
 import (
-	"../controllers"
-	"../core/authentication"
 	"github.com/codegangsta/negroni"
+	"github.com/dinhnguyen138/catte/catte_service/controllers"
+	"github.com/dinhnguyen138/catte/catte_service/core/authentication"
 	"github.com/gorilla/mux"
 )
 
@@ -27,6 +27,11 @@ func SetAuthenticationRoutes(router *mux.Router) *mux.Router {
 	router.HandleFunc(
 		"/login3rd",
 		controllers.Login3rd,
+	).Methods("POST")
+
+	router.HandleFunc(
+		"/register-host",
+		controllers.RegisterHost,
 	).Methods("POST")
 
 	router.Handle(

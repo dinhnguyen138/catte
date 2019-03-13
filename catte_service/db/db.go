@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"../models"
-	"../settings"
+	"github.com/dinhnguyen138/catte/catte_service/models"
+	"github.com/dinhnguyen138/catte/catte_service/settings"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -114,7 +114,7 @@ func Create3rdUser(username string, user3rdid string, source string) string {
 }
 
 func GetRooms() []models.Room {
-	stmt := "SELECT roomid, numplayer, amount FROM public.rooms WHERE isactive = true"
+	stmt := "SELECT roomid, numplayer, amount, host FROM public.rooms WHERE isactive = true"
 	var rooms = []models.Room{}
 	rows, err := db.Query(stmt)
 	if err != nil && err == sql.ErrNoRows {
@@ -122,7 +122,7 @@ func GetRooms() []models.Room {
 	}
 	for rows.Next() {
 		var room models.Room
-		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount)
+		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.Host)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -132,7 +132,7 @@ func GetRooms() []models.Room {
 	return rooms
 }
 
-func CreateRoom(amount int) string {
+func CreateRoom(amount int, host string) string {
 	stmt := "SELECT roomid FROM public.rooms WHERE isactive = false LIMIT 1"
 	var roomid string
 	rows, err := db.Query(stmt)
@@ -147,8 +147,8 @@ func CreateRoom(amount int) string {
 			break
 		}
 	}
-	stmt = "UPDATE public.rooms SET amount = $1 WHERE roomid = $2"
-	_, err = db.Exec(stmt, amount, roomid)
+	stmt = "UPDATE public.rooms SET amount = $1, host = $2 WHERE roomid = $3"
+	_, err = db.Exec(stmt, amount, host, roomid)
 	if err != nil {
 		return ""
 	}

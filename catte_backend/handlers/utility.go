@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	"../constants"
-	"../models"
+	"github.com/dinhnguyen138/catte/catte_backend/constants"
+	"github.com/dinhnguyen138/catte/catte_backend/models"
 )
 
 func deal() (deck models.Deck) {

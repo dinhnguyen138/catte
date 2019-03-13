@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"../db"
-	"../models"
-	"../services"
+	"github.com/dinhnguyen138/catte/catte_service/db"
+	"github.com/dinhnguyen138/catte/catte_service/models"
+	"github.com/dinhnguyen138/catte/catte_service/services"
 	"github.com/dgrijalva/jwt-go"
 )
 

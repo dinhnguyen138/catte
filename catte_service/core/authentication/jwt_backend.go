@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"../../db"
-	"../../models"
-	"../../settings"
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dinhnguyen138/catte/catte_service/db"
+	"github.com/dinhnguyen138/catte/catte_service/models"
+	"github.com/dinhnguyen138/catte/catte_service/settings"
 )
 
 type JWTAuthenticationBackend struct {

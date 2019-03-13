@@ -5,7 +5,7 @@
 -- Dumped from database version 11.2
 -- Dumped by pg_dump version 11.2
 
--- Started on 2019-03-13 01:18:35
+-- Started on 2019-03-13 20:28:52 +07
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,11 +19,11 @@ SET row_security = off;
 
 DROP DATABASE "Catte";
 --
--- TOC entry 2821 (class 1262 OID 16396)
+-- TOC entry 3138 (class 1262 OID 16394)
 -- Name: Catte; Type: DATABASE; Schema: -; Owner: postgres
 --
 
-CREATE DATABASE "Catte" WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'English_United States.1252' LC_CTYPE = 'English_United States.1252';
+CREATE DATABASE "Catte" WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C' LC_CTYPE = 'C';
 
 
 ALTER DATABASE "Catte" OWNER TO postgres;
@@ -45,7 +45,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- TOC entry 197 (class 1259 OID 16405)
+-- TOC entry 196 (class 1259 OID 16395)
 -- Name: rooms; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -53,14 +53,15 @@ CREATE TABLE public.rooms (
     roomid character varying NOT NULL,
     amount bigint,
     isactive boolean NOT NULL,
-    numplayer integer
+    numplayer integer,
+    host character varying
 );
 
 
 ALTER TABLE public.rooms OWNER TO postgres;
 
 --
--- TOC entry 196 (class 1259 OID 16397)
+-- TOC entry 197 (class 1259 OID 16401)
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -80,23 +81,23 @@ CREATE TABLE public.users (
 ALTER TABLE public.users OWNER TO postgres;
 
 --
--- TOC entry 2815 (class 0 OID 16405)
--- Dependencies: 197
+-- TOC entry 3131 (class 0 OID 16395)
+-- Dependencies: 196
 -- Data for Name: rooms; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('7', 5000, false, 0);
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('1', 5000, false, 0);
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('2', 5000, false, 0);
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('3', 5000, false, 0);
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('4', 5000, false, 0);
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('5', 5000, false, 0);
-INSERT INTO public.rooms (roomid, amount, isactive, numplayer) VALUES ('6', 10000, false, 0);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('7', 5000, false, 0, NULL);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('1', 5000, false, 0, NULL);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('2', 5000, false, 0, NULL);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('3', 5000, false, 0, NULL);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('4', 5000, false, 0, NULL);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('5', 5000, false, 0, NULL);
+INSERT INTO public.rooms (roomid, amount, isactive, numplayer, host) VALUES ('6', 10000, false, 0, NULL);
 
 
 --
--- TOC entry 2814 (class 0 OID 16397)
--- Dependencies: 196
+-- TOC entry 3132 (class 0 OID 16401)
+-- Dependencies: 197
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -104,7 +105,7 @@ INSERT INTO public.users (userid, username, email, source, password, lastcheckin
 
 
 --
--- TOC entry 2692 (class 2606 OID 16412)
+-- TOC entry 3007 (class 2606 OID 16408)
 -- Name: rooms roomid; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -113,7 +114,7 @@ ALTER TABLE ONLY public.rooms
 
 
 --
--- TOC entry 2690 (class 2606 OID 16421)
+-- TOC entry 3009 (class 2606 OID 16410)
 -- Name: users userid; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -121,7 +122,7 @@ ALTER TABLE ONLY public.users
     ADD CONSTRAINT userid PRIMARY KEY (userid);
 
 
--- Completed on 2019-03-13 01:18:36
+-- Completed on 2019-03-13 20:28:52 +07
 
 --
 -- PostgreSQL database dump complete

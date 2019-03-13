@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"../core/authentication"
-	"../models"
+	"github.com/dinhnguyen138/catte/catte_service/core/authentication"
+	"github.com/dinhnguyen138/catte/catte_service/models"
 )
 
 type TokenAuthentication struct {

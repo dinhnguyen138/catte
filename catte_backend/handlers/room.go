@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"../constants"
-	"../models"
+	"github.com/dinhnguyen138/catte/catte_backend/constants"
+	"github.com/dinhnguyen138/catte/catte_backend/db"
+	"github.com/dinhnguyen138/catte/catte_backend/models"
 	"github.com/firstrow/tcp_server"
 )
 
@@ -116,6 +117,7 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 		for i := 0; i < len(room.Players)-1; i++ {
 			room.SendUnicast(i, constants.NEWPLAYER, player)
 		}
+		db.JoinRoom(room.Id)
 	} else {
 		room.SendUnicast(index, constants.PLAYERS, room.Players)
 		if room.inGame == true {

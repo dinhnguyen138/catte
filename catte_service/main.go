@@ -3,9 +3,9 @@ package main
 import (
 	"net/http"
 
-	"./db"
-	"./routers"
-	"./settings"
+	"github.com/dinhnguyen138/catte/catte_service/db"
+	"github.com/dinhnguyen138/catte/catte_service/routers"
+	"github.com/dinhnguyen138/catte/catte_service/settings"
 	"github.com/codegangsta/negroni"
 )
 

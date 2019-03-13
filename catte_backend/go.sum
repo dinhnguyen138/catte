@@ -1,0 +1,11 @@
+github.com/firstrow/tcp_server v0.0.0-20180905125330-662e42594111 h1:J6Mysq6eXdX0rrxrJOsLkyOwMp7W6GhEccQmhkKcuvo=
+github.com/firstrow/tcp_server v0.0.0-20180905125330-662e42594111/go.mod h1:hGkv6sO57ZC+XrSTyzdIGXX7+O6S3RJb9G8sPopEF/4=
+github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
+github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/sparrc/go-ping v0.0.0-20181106165434-ef3ab45e41b0 h1:mu7brOsdaH5Dqf93vdch+mr/0To8Sgc+yInt/jE/RJM=
+github.com/sparrc/go-ping v0.0.0-20181106165434-ef3ab45e41b0/go.mod h1:eMyUVp6f/5jnzM+3zahzl7q6UXLbgSc3MKg/+ow9QW0=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 h1:0OwHPyvXNyZS9VW4XXoGkWOwhrMN52Y4n/gSxvJOgj0=
+golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

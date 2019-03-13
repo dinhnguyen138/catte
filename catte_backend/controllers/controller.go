@@ -3,8 +3,9 @@ package controllers
 import (
 	"encoding/json"
 
-	"../handlers"
-	"../models"
+	"github.com/dinhnguyen138/catte/catte_backend/handlers"
+	"github.com/dinhnguyen138/catte/catte_backend/models"
+
 	"github.com/firstrow/tcp_server"
 )
 

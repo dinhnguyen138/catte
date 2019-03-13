@@ -4,14 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"./constants"
-	"./controllers"
-	"./models"
+	"github.com/dinhnguyen138/catte/catte_backend/constants"
+	"github.com/dinhnguyen138/catte/catte_backend/controllers"
+	"github.com/dinhnguyen138/catte/catte_backend/db"
+	"github.com/dinhnguyen138/catte/catte_backend/models"
+	"github.com/dinhnguyen138/catte/catte_backend/settings"
+	"github.com/dinhnguyen138/catte/catte_backend/utilities"
 	"github.com/firstrow/tcp_server"
 )
 
 func main() {
+	settings.Init()
+	db.InitDB()
 	controllers.Init()
+	go utilities.RegisterToService()
 	server := tcp_server.New(":9999")
 
 	server.OnNewClient(func(c *tcp_server.Client) {

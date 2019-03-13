@@ -31,4 +31,8 @@ type PlayerInfo struct {
 	Amount   float32 `json:"amount" form:"amount"`
 }
 
+type RegisterMsg struct {
+	IpAddress string `json:"ip"`
+}
+
 type Deck []string
