@@ -26,9 +26,11 @@ type WinnerCommand struct {
 }
 
 type PlayerInfo struct {
-	Id       string  `json:"id" form:"-"`
-	Username string  `json:"username" form:"username"`
-	Amount   float32 `json:"amount" form:"amount"`
+	Id        string  `json:"id" form:"-"`
+	Username  string  `json:"username"`
+	User3rdId string  `json:"user3rdid"`
+	Source    string  `json:"source"`
+	Amount    float32 `json:"amount"`
 }
 
 type RegisterMsg struct {

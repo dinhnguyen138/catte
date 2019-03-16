@@ -3,10 +3,10 @@ package main
 import (
 	"net/http"
 
+	"github.com/codegangsta/negroni"
 	"github.com/dinhnguyen138/catte/catte_service/db"
 	"github.com/dinhnguyen138/catte/catte_service/routers"
 	"github.com/dinhnguyen138/catte/catte_service/settings"
-	"github.com/codegangsta/negroni"
 )
 
 func main() {

@@ -20,7 +20,12 @@ func CreateRoom(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	request := new(models.CreateRoomMsg)
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&request)
-	roomid := db.CreateRoom(request.Amount)
+	host := PickHost()
+	roomid := ""
+	if host != "" {
+		roomid = db.CreateRoom(request.Amount, host)
+	}
+
 	if roomid == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {

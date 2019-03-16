@@ -1,9 +1,12 @@
 package utilities
 
 import (
+	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/dinhnguyen138/catte/catte_backend/models"
 	"github.com/dinhnguyen138/catte/catte_backend/settings"
 )
 
@@ -19,9 +22,14 @@ func GetPublicIp() string {
 
 func RegisterToService() {
 	url := "http://" + settings.Get().ServiceIp + ":8080/register-host"
+	msg := models.RegisterMsg{GetPublicIp()}
+	msgData, _ := json.Marshal(msg)
 	for {
-		resp, _ := http.Get(url)
-		if resp.StatusCode == http.StatusOK {
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(msgData))
+		if err != nil {
+			continue
+		}
+		if resp != nil && resp.StatusCode == http.StatusOK {
 			break
 		}
 	}
