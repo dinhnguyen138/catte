@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/codegangsta/negroni"
@@ -17,5 +18,16 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(router)
 
-	http.ListenAndServe(":8080", n)
+	if os.Getenv("ENV") == "prod" {
+		err := http.ListenAndServeTLS(":443", settings.Get().ServerCertPath, settings.Get().ServerKeyPath, n)
+		if err != nil {
+			log.Fatal("ListenAndServe: ", err)
+		}
+	}
+	else {
+		err := http.ListenAndServe(":8080", n)
+		if err != nil {
+			log.Fatal("ListenAndServe: ", err)
+		}
+	}
 }

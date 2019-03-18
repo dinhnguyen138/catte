@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 )
 
 type Settings struct {
 	PrivateKeyPath     string
 	PublicKeyPath      string
 	JWTExpirationDelta int
+	ServerKeyPath      string
+	ServerCertPath     string
 	DBHost             string
 	DBPort             string
 	DBUser             string
@@ -17,14 +20,25 @@ type Settings struct {
 	DBName             string
 }
 
-var settings Settings = Settings{}
-
-func Init() {
-	LoadSettings()
+var environments = map[string]string{
+	"prod": "~/settings/prod-service.json",
+	"dev":  "settings/dev.json",
 }
 
-func LoadSettings() {
-	content, err := ioutil.ReadFile("settings/env.json")
+var settings Settings = Settings{}
+var env = "dev"
+
+func Init() {
+	env = os.Getenv("ENV")
+	if env == "" {
+		fmt.Println("Warning: Undefined environment, use dev")
+		env = "dev"
+	}
+	LoadSettings(env)
+}
+
+func LoadSettings(env string) {
+	content, err := ioutil.ReadFile(environments[env])
 	if err != nil {
 		fmt.Println("Error while reading config file", err)
 	}

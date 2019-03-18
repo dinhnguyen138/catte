@@ -1,0 +1,12 @@
+{
+    "PrivateKeyPath": "~/settings/keys/private_key",
+    "PublicKeyPath": "~/settings/keys/public_key.pub",
+    "JWTExpirationDelta": 72,
+    "ServerKeyPath": "/etc/letsencrypt/live/catte.abc-technology.net/privkey.pem",
+    "ServerCertPath": "/etc/letsencrypt/live/catte.abc-technology.net/fullchain.pem",
+    "DBHost": "catte.abc-technology.net",
+    "DBPort": "5432",
+    "DBUser": "postgres",
+    "DBPassword": "1234",
+    "DBName": "Catte"
+  }
