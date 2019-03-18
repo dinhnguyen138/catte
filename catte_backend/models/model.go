@@ -26,15 +26,20 @@ type WinnerCommand struct {
 }
 
 type PlayerInfo struct {
-	Id        string  `json:"id" form:"-"`
-	Username  string  `json:"username"`
-	User3rdId string  `json:"user3rdid"`
-	Source    string  `json:"source"`
-	Amount    float32 `json:"amount"`
+	Id       string `json:"id" form:"-"`
+	Username string `json:"username"`
+	Amount   int64  `json:"amount"`
+	Image    string `json:"image"`
 }
 
 type RegisterMsg struct {
 	IpAddress string `json:"ip"`
+}
+
+type ResultMsg struct {
+	Index  int   `json:"index"`
+	Change int64 `json:"change"`
+	Amount int64 `json:"amount"`
 }
 
 type Deck []string

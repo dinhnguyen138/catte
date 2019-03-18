@@ -14,6 +14,8 @@ const ELIMINATED string = "ELIMINATED"
 const START string = "START"
 const SHOWBACK string = "SHOWBACK"
 const WINNER string = "WINNER"
+const RESULT string = "RESULT"
+const ERROR string = "ERROR"
 
 const MAXPLAYER int = 6
 
@@ -36,3 +38,6 @@ var CardOrder map[string]int = map[string]int{
 var Types = []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
 
 var Suits = []string{"H", "D", "C", "S"}
+
+const ERR_UNKNOWN int = 0
+const ERR_ROOM_FULL int = 1

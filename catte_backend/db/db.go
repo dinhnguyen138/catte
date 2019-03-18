@@ -35,17 +35,20 @@ func CloseDB() {
 }
 
 func GetRoom(roomid string) *models.Room {
-	stmt, err := db.Prepare("SELECT roomid, numplayer, amount FROM public.rooms WHERE roomid = $1")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
-	var room = &models.Room{}
-	err = db.QueryRow(roomid).Scan(&room.Id, &room.NoPlayer, &room.Amount)
+	stmt := "SELECT roomid, numplayer, amount, maxplayer FROM public.rooms WHERE roomid = $1"
+	rows, err := db.Query(stmt, roomid)
 	if err != nil && err == sql.ErrNoRows {
 		return nil
 	}
-	return room
+	for rows.Next() {
+		var room models.Room
+		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.MaxPlayer)
+		if err != nil {
+			log.Println(err)
+		}
+		return &room
+	}
+	return nil
 }
 
 func JoinRoom(roomid string) {
@@ -64,5 +67,21 @@ func JoinRoom(roomid string) {
 	_, err = db.Exec(statement, numplayer+1, roomid)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func UpdateRoom(roomid string, numplayer int) {
+	statement := "UPDATE public.rooms SET numplayer = $1 WHERE roomid = $2"
+	_, err := db.Exec(statement, numplayer, roomid)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func UpdatePlayer(playerid string, amount int64) {
+	statement := "UPDATE public.users SET amount = $1 WHERE userid = $2"
+	_, err := db.Exec(statement, amount, playerid)
+	if err != nil {
+		log.Println(err)
 	}
 }

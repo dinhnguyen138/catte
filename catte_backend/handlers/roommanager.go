@@ -21,20 +21,20 @@ func (roomManager *RoomManager) FindRoom(id string) (*Room, bool) {
 	}
 	// TODO Load room from DB
 	room := db.GetRoom(id)
-	if room != nil {
+	fmt.Println(room)
+	if room == nil {
 		return nil, false
 	}
-	roomManager.rooms[id] = &Room{Id: room.Id, Amount: room.Amount}
+	roomManager.rooms[id] = NewRoom(room.Id, room.MaxPlayer, room.Amount)
 	return roomManager.rooms[id], true
 }
 
 // Find a client in case of disconnected. In this case we don't know who are disconnect
 func (roomManager *RoomManager) FindClient(c *tcp_server.Client) (room *Room, index int) {
 	for _, v := range roomManager.rooms {
-		for i := 0; i < len(v.Players); i++ {
-			if v.Players[i] != nil && v.Players[i].client == c {
-				return v, v.Players[i].Index
-			}
+		index := v.FindClient(c)
+		if index != -1 {
+			return v, index
 		}
 	}
 	return nil, -1

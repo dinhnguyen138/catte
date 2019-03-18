@@ -22,6 +22,10 @@ func HandleCommand(command models.Command) {
 
 func JoinRoom(command models.Command, c *tcp_server.Client) {
 	room, isNew := roomManager.FindRoom(command.Room)
+	if room == nil {
+		// should return failure here
+		return
+	}
 	if isNew == true {
 		room.KickUserCallback(func(roomId string, index int) {
 			KickUser(roomId, index)
@@ -35,7 +39,7 @@ func JoinRoom(command models.Command, c *tcp_server.Client) {
 func LeaveRoom(command models.Command) {
 	room, _ := roomManager.FindRoom(command.Room)
 	room.LeaveRoom(command.Index)
-	if len(room.Players) == 0 {
+	if room.IsEmpty() {
 		roomManager.RemoveRoom(command.Room)
 	}
 }
@@ -50,7 +54,7 @@ func HandleDisconnect(c *tcp_server.Client) {
 func KickUser(roomId string, index int) {
 	room, _ := roomManager.FindRoom(roomId)
 	room.LeaveRoom(index)
-	if len(room.Players) == 0 {
+	if room.IsEmpty() {
 		roomManager.RemoveRoom(roomId)
 	}
 }

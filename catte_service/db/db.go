@@ -37,7 +37,7 @@ func CloseDB() {
 }
 
 func AuthUser(username string, password string) string {
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), 10)
+	fmt.Println(username + " " + password)
 	stmt := "SELECT userid, password FROM public.users WHERE username = $1"
 
 	rows, err := db.Query(stmt, username)
@@ -48,73 +48,106 @@ func AuthUser(username string, password string) string {
 		var userid string
 		var pass string
 		err := rows.Scan(&userid, &pass)
+		fmt.Println(userid + " " + pass)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if bcrypt.CompareHashAndPassword(hashedPassword, []byte(pass)) != nil {
+		if bcrypt.CompareHashAndPassword([]byte(pass), []byte(password)) == nil {
 			return userid
 		}
 	}
 	return ""
 }
 
-func GetUser(userid string) *models.UserInfo {
-	stmt, err := db.Prepare("SELECT userid, username, user3rdid, amount, source FROM public.users WHERE userid = $1")
+func CheckIn(userid string) int64 {
+	stmt, err := db.Prepare("SELECT lastcheckin = current_date, amount FROM public.users WHERE userid = $1")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	var user = &models.UserInfo{}
-	err = db.QueryRow(userid).Scan(&user.UserId, &user.UserName, &user.User3rdId, &user.Amount, &user.Source)
+	var result bool
+	var amount int64
+	update := int64(0)
+	err = stmt.QueryRow(userid).Scan(&result, &amount)
+	if result == false {
+		if amount < 10000 {
+			amount += 30000
+			update = int64(30000)
+		}
+		statement := "UPDATE public.users SET lastcheckin = current_date, amount = $2 WHERE userid = $1"
+		_, _ = db.Exec(statement, userid, amount)
+	}
+
+	return update
+}
+
+func GetUser(userid string) *models.UserInfo {
+	fmt.Println(userid)
+	stmt := "SELECT userid, username, user3rdid, amount, source, image FROM public.users WHERE userid = $1"
+	rows, err := db.Query(stmt, userid)
 	if err != nil && err == sql.ErrNoRows {
 		return nil
 	}
-	return user
+	for rows.Next() {
+		var user models.UserInfo
+		err = rows.Scan(&user.UserId, &user.UserName, &user.User3rdId, &user.Amount, &user.Source, &user.Image)
+		if err != nil {
+			log.Println(err)
+		}
+		return &user
+	}
+	return nil
 }
 
 func Get3rdUser(user3rdid string, source string) *models.UserInfo {
-	stmt, err := db.Prepare("SELECT userid, username, user3rdid, amount, source FROM public.users WHERE user3rdid = $1")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
-	var user = &models.UserInfo{}
-	err = db.QueryRow(user3rdid).Scan(&user.UserId, &user.UserName, &user.User3rdId, &user.Amount, &user.Source)
+	stmt := "SELECT userid, username, user3rdid, amount, source, image FROM public.users WHERE user3rdid = $1 AND source = $2"
+	rows, err := db.Query(stmt, user3rdid, source)
 	if err != nil && err == sql.ErrNoRows {
 		return nil
 	}
-	return user
+	for rows.Next() {
+		var user models.UserInfo
+		err = rows.Scan(&user.UserId, &user.UserName, &user.User3rdId, &user.Amount, &user.Source, &user.Image)
+		if err != nil {
+			log.Println(err)
+		}
+		return &user
+	}
+	return nil
 }
 
 func CreateAppUser(username string, password string) {
+	fmt.Println(password)
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), 10)
-	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, password, amount, source) VALUES ($1, $2, $3, $4, $5)")
+	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, source, password, amount, user3rdid, image) VALUES ($1, $2, $3, $4, $5, $6, $7)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(uuid.New().String(), username, string(hashedPassword), 50000, "App")
+	_, err = stmt.Exec(uuid.New().String(), username, "App", string(hashedPassword), 50000, "", "")
 	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
+		log.Fatal(err)
 	}
 }
 
-func Create3rdUser(username string, user3rdid string, source string) string {
-	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, user3rdid, amount, source) VALUES ($1, $2, $3, $4, $5)")
+func Create3rdUser(username string, user3rdid string, source string, image string) string {
+	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, source, password, amount, user3rdid, image) VALUES ($1, $2, $3, $4, $5, $6, $7)")
 	if err != nil {
 		log.Fatal(err)
+		return ""
 	}
 	defer stmt.Close()
 	userid := uuid.New().String()
-	_, err = stmt.Exec(userid, username, user3rdid, 50000, source)
+	_, err = stmt.Exec(userid, username, source, "", 50000, user3rdid, image)
 	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
+		log.Fatal(err)
+		return ""
 	}
 	return userid
 }
 
 func GetRooms() []models.Room {
-	stmt := "SELECT roomid, numplayer, amount, host FROM public.rooms WHERE isactive = true"
+	stmt := "SELECT roomid, numplayer, amount, host, maxplayer FROM public.rooms WHERE numplayer > 0"
 	var rooms = []models.Room{}
 	rows, err := db.Query(stmt)
 	if err != nil && err == sql.ErrNoRows {
@@ -122,9 +155,9 @@ func GetRooms() []models.Room {
 	}
 	for rows.Next() {
 		var room models.Room
-		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.Host)
+		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.Host, &room.MaxPlayer)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		rooms = append(rooms, room)
 	}
@@ -133,7 +166,7 @@ func GetRooms() []models.Room {
 }
 
 func CreateRoom(amount int, host string) string {
-	stmt := "SELECT roomid FROM public.rooms WHERE isactive = false LIMIT 1"
+	stmt := "SELECT roomid FROM public.rooms WHERE numplayer = 0 LIMIT 1"
 	var roomid string
 	rows, err := db.Query(stmt)
 	if err != nil && err == sql.ErrNoRows {
