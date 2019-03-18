@@ -1,0 +1,8 @@
+{
+    "ServiceIP": "https://catte.abc-technology.net",
+    "DBHost": "catte.abc-technology.net",
+    "DBPort": "5432",
+    "DBUser": "postgres",
+    "DBPassword": "1234",
+    "DBName": "Catte"
+  }

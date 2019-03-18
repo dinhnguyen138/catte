@@ -3,6 +3,7 @@ package utilities
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -21,12 +22,13 @@ func GetPublicIp() string {
 }
 
 func RegisterToService() {
-	url := "http://" + settings.Get().ServiceIp + ":8080/register-host"
+	url := settings.Get().ServiceIp + "/register-host"
 	msg := models.RegisterMsg{GetPublicIp()}
 	msgData, _ := json.Marshal(msg)
 	for {
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(msgData))
 		if err != nil {
+			fmt.Println("Failed to register-host")
 			continue
 		}
 		if resp != nil && resp.StatusCode == http.StatusOK {

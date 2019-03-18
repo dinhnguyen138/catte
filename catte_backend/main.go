@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/dinhnguyen138/catte/catte_backend/constants"
 	"github.com/dinhnguyen138/catte/catte_backend/controllers"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	fmt.Println(os.Getenv("ENV"))
 	settings.Init()
 	db.InitDB()
 	controllers.Init()

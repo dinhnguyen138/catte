@@ -1,5 +1,5 @@
 {
-    "ServiceIP": "localhost",
+    "ServiceIP": "http://localhost",
     "DBHost": "localhost",
     "DBPort": "5432",
     "DBUser": "postgres",
