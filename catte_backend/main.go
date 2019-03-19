@@ -20,7 +20,7 @@ func main() {
 	db.InitDB()
 	controllers.Init()
 	go utilities.RegisterToService()
-	server := tcp_server.NewWithTLS(":9999", "./server.pem", "./server.key")
+	server := tcp_server.NewWithTLS(":9999", settings.Get().ServerCertPath, settings.Get().ServerKeyPath)
 
 	server.OnNewClient(func(c *tcp_server.Client) {
 		fmt.Println("Client connect")

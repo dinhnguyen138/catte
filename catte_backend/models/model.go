@@ -42,4 +42,9 @@ type ResultMsg struct {
 	Amount int64 `json:"amount"`
 }
 
+type LeaveMsg struct {
+	Index int `json:"index"`
+	Host  int `json:"host"`
+}
+
 type Deck []string

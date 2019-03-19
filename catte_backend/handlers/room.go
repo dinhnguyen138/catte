@@ -40,6 +40,8 @@ func NewRoom(id string, maxPlayer int, amount int64) *Room {
 	room.id = id
 	room.amount = amount
 	room.maxPlayer = maxPlayer
+	room.inGame = false
+	room.cleanUp = true
 	for i := 0; i < room.maxPlayer; i++ {
 		room.indexUsed = append(room.indexUsed, false)
 	}
@@ -153,6 +155,10 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 			room.SendUnicast(i, constants.NEWPLAYER, player)
 		}
 		db.UpdateRoom(room.id, len(room.players))
+		if len(room.players) == 2 {
+			room.timer = time.NewTimer(time.Second)
+			go room.mainloop()
+		}
 	} else {
 		room.SendUnicast(index, constants.PLAYERS, room.players)
 		if room.inGame == true {
@@ -171,16 +177,20 @@ func (room *Room) LeaveRoom(index int) {
 
 			room.players = append(room.players[:i], room.players[i+1:]...)
 			room.indexUsed[room.players[i].Index] = false
+			msg := models.LeaveMsg{Index: index}
 			if changeHost == true {
 				room.players[0].IsHost = true
+				msg.Host = room.players[0].Index
+			} else {
+				msg.Host = -1
 			}
 
-			room.SendBroadcast(constants.LEAVE, strconv.Itoa(index))
+			room.SendBroadcast(constants.LEAVE, msg)
 			db.UpdateRoom(room.id, len(room.players))
 			break
 		}
 	}
-	if len(room.players) == 0 {
+	if len(room.players) == 1 {
 		room.timer.Stop()
 	}
 }
@@ -217,7 +227,7 @@ func (room *Room) KickDisconnectedUser() {
 }
 
 func (room *Room) mainloop() {
-	for len(room.players) != 0 {
+	for len(room.players) > 1 {
 		select {
 		case <-room.timer.C:
 			fmt.Print("Timeout at turn ")
@@ -241,6 +251,7 @@ func (room *Room) mainloop() {
 			} else if room.cleanUp == false {
 				room.KickDisconnectedUser()
 				// TODO: Send broadcast to user to info automatic newgame
+				room.SendBroadcast(constants.INFORM, "")
 				room.resetTimer(newGameTimeout)
 			} else {
 				room.newGame()
@@ -280,8 +291,7 @@ func (room *Room) newGame() {
 	}
 	room.inGame = true
 	room.cleanUp = false
-	room.timer = time.NewTimer(time.Second * 20)
-	go room.mainloop()
+	room.resetTimer(turnTimeout)
 }
 
 func (room *Room) play(action string, index int, card string) {

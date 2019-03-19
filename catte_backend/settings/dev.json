@@ -1,5 +1,7 @@
 {
     "ServiceIP": "http://localhost:8080",
+    "ServerCertPath": "settings/keys/server.pem",
+    "ServerKeyPath": "settings/keys/server.key",
     "DBHost": "localhost",
     "DBPort": "5432",
     "DBUser": "postgres",

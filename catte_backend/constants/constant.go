@@ -15,6 +15,7 @@ const START string = "START"
 const SHOWBACK string = "SHOWBACK"
 const WINNER string = "WINNER"
 const RESULT string = "RESULT"
+const INFORM string = "INFORM"
 const ERROR string = "ERROR"
 
 const MAXPLAYER int = 6

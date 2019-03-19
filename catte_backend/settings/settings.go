@@ -8,12 +8,14 @@ import (
 )
 
 type Settings struct {
-	ServiceIp  string
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
+	ServiceIp      string
+	ServerCertPath string
+	ServerKeyPath  string
+	DBHost         string
+	DBPort         string
+	DBUser         string
+	DBPassword     string
+	DBName         string
 }
 
 var environments = map[string]string{
