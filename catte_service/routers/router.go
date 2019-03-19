@@ -63,6 +63,13 @@ func SetAuthenticationRoutes(router *mux.Router) *mux.Router {
 		)).Methods("GET")
 
 	router.Handle(
+		"/quick-join",
+		negroni.New(
+			negroni.HandlerFunc(authentication.RequireTokenAuthentication),
+			negroni.HandlerFunc(controllers.QuickFind),
+		)).Methods("GET")
+
+	router.Handle(
 		"/create-room",
 		negroni.New(
 			negroni.HandlerFunc(authentication.RequireTokenAuthentication),

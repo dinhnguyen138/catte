@@ -165,12 +165,31 @@ func GetRooms() []models.Room {
 	return rooms
 }
 
-func CreateRoom(amount int, host string) string {
-	stmt := "SELECT roomid FROM public.rooms WHERE numplayer = 0 LIMIT 1"
+func FindRoom(amount int64) *models.Room {
+	stmt := "SELECT roomid, numplayer, amount, host, maxplayer FROM public.rooms WHERE amount < $1 and numplayer > 0"
+
+	rows, err := db.Query(stmt, amount/2)
+	if err != nil && err == sql.ErrNoRows {
+		return nil
+	}
+	for rows.Next() {
+		var room models.Room
+		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.Host, &room.MaxPlayer)
+		if err != nil {
+			log.Println(err)
+		} else {
+			return &room
+		}
+	}
+	return nil
+}
+
+func CreateRoom(amount int64, host string) *models.Room {
+	stmt := "SELECT roomid, FROM public.rooms WHERE numplayer = 0 LIMIT 1"
 	var roomid string
 	rows, err := db.Query(stmt)
 	if err != nil && err == sql.ErrNoRows {
-		return ""
+		return nil
 	}
 	for rows.Next() {
 		err := rows.Scan(&roomid)
@@ -183,7 +202,7 @@ func CreateRoom(amount int, host string) string {
 	stmt = "UPDATE public.rooms SET amount = $1, host = $2 WHERE roomid = $3"
 	_, err = db.Exec(stmt, amount, host, roomid)
 	if err != nil {
-		return ""
+		return nil
 	}
-	return roomid
+	return &models.Room{Id: roomid, Amount: amount, Host: host}
 }

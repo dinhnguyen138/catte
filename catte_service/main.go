@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/codegangsta/negroni"
 	"github.com/dinhnguyen138/catte/catte_service/db"
@@ -23,8 +24,7 @@ func main() {
 		if err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}
-	}
-	else {
+	} else {
 		err := http.ListenAndServe(":8080", n)
 		if err != nil {
 			log.Fatal("ListenAndServe: ", err)

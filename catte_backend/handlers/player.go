@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dinhnguyen138/catte/catte_backend/models"
-	"github.com/firstrow/tcp_server"
+	"github.com/dinhnguyen138/tcp_server"
 )
 
 type Player struct {

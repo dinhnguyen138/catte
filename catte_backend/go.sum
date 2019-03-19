@@ -1,3 +1,5 @@
+github.com/dinhnguyen138/tcp_server v0.0.0-20190318133439-8c2202751d32 h1:HAWPcrYF4oVLVmK4C0Xm1lXmCcnzI60GMP3Hp7ARPdc=
+github.com/dinhnguyen138/tcp_server v0.0.0-20190318133439-8c2202751d32/go.mod h1:BpcarLUCKitrzjKjZYBGP7wioA6AeREE38Fo4LKAyWc=
 github.com/firstrow/tcp_server v0.0.0-20180905125330-662e42594111 h1:J6Mysq6eXdX0rrxrJOsLkyOwMp7W6GhEccQmhkKcuvo=
 github.com/firstrow/tcp_server v0.0.0-20180905125330-662e42594111/go.mod h1:hGkv6sO57ZC+XrSTyzdIGXX7+O6S3RJb9G8sPopEF/4=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=

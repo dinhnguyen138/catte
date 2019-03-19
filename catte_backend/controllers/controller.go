@@ -6,7 +6,7 @@ import (
 	"github.com/dinhnguyen138/catte/catte_backend/handlers"
 	"github.com/dinhnguyen138/catte/catte_backend/models"
 
-	"github.com/firstrow/tcp_server"
+	"github.com/dinhnguyen138/tcp_server"
 )
 
 var roomManager handlers.RoomManager

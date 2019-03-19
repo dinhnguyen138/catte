@@ -9,7 +9,7 @@ import (
 	"github.com/dinhnguyen138/catte/catte_backend/constants"
 	"github.com/dinhnguyen138/catte/catte_backend/db"
 	"github.com/dinhnguyen138/catte/catte_backend/models"
-	"github.com/firstrow/tcp_server"
+	"github.com/dinhnguyen138/tcp_server"
 )
 
 type Room struct {

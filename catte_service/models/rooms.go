@@ -9,7 +9,7 @@ type Room struct {
 }
 
 type CreateRoomMsg struct {
-	Amount int `json:"amount"`
+	Amount int64 `json:"amount"`
 }
 
 type RegisterHostMsg struct {
