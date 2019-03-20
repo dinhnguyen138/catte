@@ -365,10 +365,7 @@ func (room *Room) play(action string, index int, card string) {
 	if room.finalRowPlayer == 1 {
 		room.calculateWinnerAmount(true)
 		room.inGame = false
-		return
-	}
-
-	if room.currentRow == 5 && room.rowCount == room.finalRowPlayer {
+	} else if room.currentRow == 5 && room.rowCount == room.finalRowPlayer {
 		room.rowCount = 0
 		room.currentRow = 0
 		room.turn = room.topCardIndex
