@@ -176,7 +176,7 @@ func (room *Room) LeaveRoom(index int) {
 			}
 			room.indexUsed[room.players[i].Index] = false
 			room.players = append(room.players[:i], room.players[i+1:]...)
-
+			db.UpdateRoom(room.id, len(room.players))
 			if len(room.players) == 0 {
 				break
 			}
@@ -189,7 +189,6 @@ func (room *Room) LeaveRoom(index int) {
 			}
 
 			room.SendBroadcast(constants.LEAVE, msg)
-			db.UpdateRoom(room.id, len(room.players))
 			break
 		}
 	}
