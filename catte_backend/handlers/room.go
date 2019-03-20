@@ -174,9 +174,12 @@ func (room *Room) LeaveRoom(index int) {
 			if room.players[i].IsHost == true {
 				changeHost = true
 			}
-
-			room.players = append(room.players[:i], room.players[i+1:]...)
 			room.indexUsed[room.players[i].Index] = false
+			room.players = append(room.players[:i], room.players[i+1:]...)
+
+			if len(room.players) == 0 {
+				break
+			}
 			msg := models.LeaveMsg{Index: index}
 			if changeHost == true {
 				room.players[0].IsHost = true
