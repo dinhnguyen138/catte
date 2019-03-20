@@ -217,6 +217,10 @@ func (room *Room) Disconnect(index int) {
 		if room.players[i].Index == index {
 			fmt.Println("Find disconnected user " + room.players[i].Info.Id)
 			room.players[i].Disconnected = true
+			if room.inGame == false {
+				room.kickUser(room.id, room.players[i].Index)
+				return
+			}
 		}
 	}
 }
