@@ -41,7 +41,7 @@ func NewRoom(id string, maxPlayer int, amount int64) *Room {
 	room.amount = amount
 	room.maxPlayer = maxPlayer
 	room.inGame = false
-	room.cleanUp = true
+	room.cleanUp = false
 	for i := 0; i < room.maxPlayer; i++ {
 		room.indexUsed = append(room.indexUsed, false)
 	}
@@ -193,6 +193,8 @@ func (room *Room) LeaveRoom(index int) {
 		}
 	}
 	if len(room.players) == 1 {
+		room.inGame = false
+		room.cleanUp = false
 		room.timer.Stop()
 	}
 }
