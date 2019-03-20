@@ -21,7 +21,7 @@ type Settings struct {
 }
 
 var environments = map[string]string{
-	"prod": "~/settings/prod-service.json",
+	"prod": "settings/prod-service.json",
 	"dev":  "settings/dev.json",
 }
 
