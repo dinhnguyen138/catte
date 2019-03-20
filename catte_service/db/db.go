@@ -42,7 +42,8 @@ func AuthUser(username string, password string) string {
 
 	rows, err := db.Query(stmt, username)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return ""
 	}
 	for rows.Next() {
 		var userid string
@@ -62,7 +63,8 @@ func AuthUser(username string, password string) string {
 func CheckIn(userid string) int64 {
 	stmt, err := db.Prepare("SELECT lastcheckin = current_date, amount FROM public.users WHERE userid = $1")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return 0
 	}
 	defer stmt.Close()
 	var result bool
@@ -85,7 +87,8 @@ func GetUser(userid string) *models.UserInfo {
 	fmt.Println(userid)
 	stmt := "SELECT userid, username, user3rdid, amount, source, image FROM public.users WHERE userid = $1"
 	rows, err := db.Query(stmt, userid)
-	if err != nil && err == sql.ErrNoRows {
+	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	for rows.Next() {
@@ -102,7 +105,8 @@ func GetUser(userid string) *models.UserInfo {
 func Get3rdUser(user3rdid string, source string) *models.UserInfo {
 	stmt := "SELECT userid, username, user3rdid, amount, source, image FROM public.users WHERE user3rdid = $1 AND source = $2"
 	rows, err := db.Query(stmt, user3rdid, source)
-	if err != nil && err == sql.ErrNoRows {
+	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	for rows.Next() {
@@ -121,7 +125,7 @@ func CreateAppUser(username string, password string) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), 10)
 	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, source, password, amount, user3rdid, image) VALUES ($1, $2, $3, $4, $5, $6, $7)")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(uuid.New().String(), username, "App", string(hashedPassword), 50000, "", "")
@@ -133,7 +137,7 @@ func CreateAppUser(username string, password string) {
 func Create3rdUser(username string, user3rdid string, source string, image string) string {
 	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, source, password, amount, user3rdid, image) VALUES ($1, $2, $3, $4, $5, $6, $7)")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return ""
 	}
 	defer stmt.Close()
@@ -150,7 +154,8 @@ func GetRooms() []models.Room {
 	stmt := "SELECT roomid, numplayer, amount, host, maxplayer FROM public.rooms WHERE numplayer > 0"
 	var rooms = []models.Room{}
 	rows, err := db.Query(stmt)
-	if err != nil && err == sql.ErrNoRows {
+	if err != nil {
+		log.Println(err)
 		return rooms
 	}
 	for rows.Next() {
@@ -169,7 +174,8 @@ func FindRoom(amount int64) *models.Room {
 	stmt := "SELECT roomid, numplayer, amount, host, maxplayer FROM public.rooms WHERE amount < $1 and numplayer > 0"
 
 	rows, err := db.Query(stmt, amount/2)
-	if err != nil && err == sql.ErrNoRows {
+	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	for rows.Next() {
@@ -189,7 +195,8 @@ func CreateRoom(amount int64, maxplayer int, host string) *models.Room {
 	var roomid string
 	rows, err := db.Query(stmt)
 
-	if err != nil && err == sql.ErrNoRows {
+	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	for rows.Next() {
@@ -203,6 +210,7 @@ func CreateRoom(amount int64, maxplayer int, host string) *models.Room {
 	stmt = "UPDATE public.rooms SET amount = $1, maxplayer = $2, host = $3 WHERE roomid = $4"
 	_, err = db.Exec(stmt, amount, maxplayer, host, roomid)
 	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	return &models.Room{Id: roomid, Amount: amount, Host: host}
