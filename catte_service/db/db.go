@@ -184,10 +184,11 @@ func FindRoom(amount int64) *models.Room {
 	return nil
 }
 
-func CreateRoom(amount int64, host string) *models.Room {
-	stmt := "SELECT roomid, FROM public.rooms WHERE numplayer = 0 LIMIT 1"
+func CreateRoom(amount int64, maxplayer int, host string) *models.Room {
+	stmt := "SELECT roomid FROM public.rooms WHERE numplayer = 0 LIMIT 1"
 	var roomid string
 	rows, err := db.Query(stmt)
+
 	if err != nil && err == sql.ErrNoRows {
 		return nil
 	}
@@ -199,8 +200,8 @@ func CreateRoom(amount int64, host string) *models.Room {
 			break
 		}
 	}
-	stmt = "UPDATE public.rooms SET amount = $1, host = $2 WHERE roomid = $3"
-	_, err = db.Exec(stmt, amount, host, roomid)
+	stmt = "UPDATE public.rooms SET amount = $1, maxplayer = $2, host = $3 WHERE roomid = $4"
+	_, err = db.Exec(stmt, amount, maxplayer, host, roomid)
 	if err != nil {
 		return nil
 	}

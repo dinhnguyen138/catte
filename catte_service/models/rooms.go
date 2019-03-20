@@ -9,7 +9,8 @@ type Room struct {
 }
 
 type CreateRoomMsg struct {
-	Amount int64 `json:"amount"`
+	Amount    int64 `json:"amount"`
+	NumPlayer int   `json:"numplayer"`
 }
 
 type RegisterHostMsg struct {

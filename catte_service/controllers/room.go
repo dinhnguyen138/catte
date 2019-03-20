@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
@@ -21,14 +22,14 @@ func CreateRoom(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	request := new(models.CreateRoomMsg)
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&request)
+	fmt.Println(request)
 	host := PickHost()
 	var room *models.Room
 	if host != "" {
-		room = db.CreateRoom(request.Amount, host)
+		room = db.CreateRoom(request.Amount, request.NumPlayer, host)
 	} else {
 		room = nil
 	}
-
 	if room == nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {

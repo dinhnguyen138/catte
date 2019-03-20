@@ -16,7 +16,7 @@ func RegisterHost(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&request)
 	log.Println(request.IpAddress)
-	hosts = append(hosts, r.RemoteAddr)
+	hosts = append(hosts, request.IpAddress)
 	w.WriteHeader(http.StatusOK)
 }
 
