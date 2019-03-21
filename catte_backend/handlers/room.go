@@ -31,7 +31,7 @@ type Room struct {
 	kickUser       func(roomId string, index int)
 }
 
-var turnTimeout = 10
+var turnTimeout = 12
 var cleanUpTimeout = 5
 var newGameTimeout = 15
 
