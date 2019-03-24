@@ -259,10 +259,14 @@ func (room *Room) mainloop() {
 			} else if room.cleanUp == false {
 				room.KickDisconnectedUser()
 				// TODO: Send broadcast to user to info automatic newgame
-				room.SendBroadcast(constants.INFORM, "")
-				room.resetTimer(newGameTimeout)
+				if len(room.players) > 1 {
+					room.SendBroadcast(constants.INFORM, "")
+					room.resetTimer(newGameTimeout)
+				}
 			} else {
-				room.newGame()
+				if len(room.players) > 1 {
+					room.newGame()
+				}
 			}
 
 		}
@@ -271,7 +275,7 @@ func (room *Room) mainloop() {
 }
 
 func (room *Room) newGame() {
-	if room.inGame == true {
+	if room.inGame == true || len(room.players) == 0 {
 		return
 	}
 	room.turn = room.players[room.topCardIndex].Index
