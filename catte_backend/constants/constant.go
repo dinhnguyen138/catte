@@ -42,3 +42,5 @@ var Suits = []string{"H", "D", "C", "S"}
 
 const ERR_UNKNOWN int = 0
 const ERR_ROOM_FULL int = 1
+const ERR_LEAVE_IN_GAME int = 2
+const ERR_NO_ROOM int = 3

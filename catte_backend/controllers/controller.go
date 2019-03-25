@@ -2,9 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"strconv"
 
+	"github.com/dinhnguyen138/catte/catte_backend/constants"
 	"github.com/dinhnguyen138/catte/catte_backend/handlers"
 	"github.com/dinhnguyen138/catte/catte_backend/models"
+	"github.com/dinhnguyen138/catte/catte_backend/utilities"
+	"github.com/kataras/golog"
 
 	"github.com/dinhnguyen138/tcp_server"
 )
@@ -23,7 +27,8 @@ func HandleCommand(command models.Command) {
 func JoinRoom(command models.Command, c *tcp_server.Client) {
 	room, isNew := roomManager.FindRoom(command.Room)
 	if room == nil {
-		// should return failure here
+		golog.Errorf("Error finding room %v", command.Room)
+		utilities.SendClient(c, constants.ERROR, strconv.Itoa(constants.ERR_NO_ROOM))
 		return
 	}
 	if isNew == true {

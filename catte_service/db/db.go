@@ -3,11 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/dinhnguyen138/catte/catte_service/models"
 	"github.com/dinhnguyen138/catte/catte_service/settings"
 	"github.com/google/uuid"
+	"github.com/kataras/golog"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -42,7 +42,7 @@ func AuthUser(username string, password string) string {
 
 	rows, err := db.Query(stmt, username)
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return ""
 	}
 	for rows.Next() {
@@ -51,7 +51,7 @@ func AuthUser(username string, password string) string {
 		err := rows.Scan(&userid, &pass)
 		fmt.Println(userid + " " + pass)
 		if err != nil {
-			log.Fatal(err)
+			golog.Fatal(err)
 		}
 		if bcrypt.CompareHashAndPassword([]byte(pass), []byte(password)) == nil {
 			return userid
@@ -63,7 +63,7 @@ func AuthUser(username string, password string) string {
 func CheckIn(userid string) int64 {
 	stmt, err := db.Prepare("SELECT lastcheckin = current_date, amount FROM public.users WHERE userid = $1")
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return 0
 	}
 	defer stmt.Close()
@@ -88,14 +88,14 @@ func GetUser(userid string) *models.UserInfo {
 	stmt := "SELECT userid, username, user3rdid, amount, source, image FROM public.users WHERE userid = $1"
 	rows, err := db.Query(stmt, userid)
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return nil
 	}
 	for rows.Next() {
 		var user models.UserInfo
 		err = rows.Scan(&user.UserId, &user.UserName, &user.User3rdId, &user.Amount, &user.Source, &user.Image)
 		if err != nil {
-			log.Println(err)
+			golog.Println(err)
 		}
 		return &user
 	}
@@ -106,14 +106,14 @@ func Get3rdUser(user3rdid string, source string) *models.UserInfo {
 	stmt := "SELECT userid, username, user3rdid, amount, source, image FROM public.users WHERE user3rdid = $1 AND source = $2"
 	rows, err := db.Query(stmt, user3rdid, source)
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return nil
 	}
 	for rows.Next() {
 		var user models.UserInfo
 		err = rows.Scan(&user.UserId, &user.UserName, &user.User3rdId, &user.Amount, &user.Source, &user.Image)
 		if err != nil {
-			log.Println(err)
+			golog.Println(err)
 		}
 		return &user
 	}
@@ -125,26 +125,26 @@ func CreateAppUser(username string, password string) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), 10)
 	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, source, password, amount, user3rdid, image) VALUES ($1, $2, $3, $4, $5, $6, $7)")
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(uuid.New().String(), username, "App", string(hashedPassword), 50000, "", "")
 	if err != nil {
-		log.Fatal(err)
+		golog.Fatal(err)
 	}
 }
 
 func Create3rdUser(username string, user3rdid string, source string, image string) string {
 	stmt, err := db.Prepare("INSERT INTO public.users (userid, username, source, password, amount, user3rdid, image) VALUES ($1, $2, $3, $4, $5, $6, $7)")
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return ""
 	}
 	defer stmt.Close()
 	userid := uuid.New().String()
 	_, err = stmt.Exec(userid, username, source, "", 50000, user3rdid, image)
 	if err != nil {
-		log.Fatal(err)
+		golog.Fatal(err)
 		return ""
 	}
 	return userid
@@ -155,18 +155,18 @@ func GetRooms() []models.Room {
 	var rooms = []models.Room{}
 	rows, err := db.Query(stmt)
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return rooms
 	}
 	for rows.Next() {
 		var room models.Room
 		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.Host, &room.MaxPlayer)
 		if err != nil {
-			log.Println(err)
+			golog.Println(err)
 		}
 		rooms = append(rooms, room)
 	}
-	log.Println(rooms)
+	golog.Println(rooms)
 	return rooms
 }
 
@@ -175,14 +175,14 @@ func FindRoom(amount int64) *models.Room {
 
 	rows, err := db.Query(stmt, amount/2)
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return nil
 	}
 	for rows.Next() {
 		var room models.Room
 		err := rows.Scan(&room.Id, &room.NoPlayer, &room.Amount, &room.Host, &room.MaxPlayer)
 		if err != nil {
-			log.Println(err)
+			golog.Println(err)
 		} else {
 			return &room
 		}
@@ -196,13 +196,13 @@ func CreateRoom(amount int64, maxplayer int, host string) *models.Room {
 	rows, err := db.Query(stmt)
 
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return nil
 	}
 	for rows.Next() {
 		err := rows.Scan(&roomid)
 		if err != nil {
-			log.Fatal(err)
+			golog.Fatal(err)
 		} else {
 			break
 		}
@@ -210,7 +210,7 @@ func CreateRoom(amount int64, maxplayer int, host string) *models.Room {
 	stmt = "UPDATE public.rooms SET amount = $1, maxplayer = $2, host = $3 WHERE roomid = $4"
 	_, err = db.Exec(stmt, amount, maxplayer, host, roomid)
 	if err != nil {
-		log.Println(err)
+		golog.Println(err)
 		return nil
 	}
 	return &models.Room{Id: roomid, Amount: amount, Host: host}

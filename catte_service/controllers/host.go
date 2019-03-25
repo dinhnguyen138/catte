@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/dinhnguyen138/catte/catte_service/models"
 	"github.com/dinhnguyen138/catte/catte_service/utilities"
+	"github.com/kataras/golog"
 )
 
 var hosts []string
@@ -15,7 +15,7 @@ func RegisterHost(w http.ResponseWriter, r *http.Request) {
 	request := new(models.RegisterHostMsg)
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&request)
-	log.Println(request.IpAddress)
+	golog.Info(request.IpAddress)
 	hosts = append(hosts, request.IpAddress)
 	w.WriteHeader(http.StatusOK)
 }

@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
+
+	"github.com/kataras/golog"
+	"github.com/natefinch/lumberjack"
 
 	"github.com/dinhnguyen138/catte/catte_backend/constants"
 	"github.com/dinhnguyen138/catte/catte_backend/controllers"
@@ -15,7 +17,15 @@ import (
 )
 
 func main() {
-	fmt.Println(os.Getenv("ENV"))
+	golog.SetOutput(&lumberjack.Logger{
+		Filename:   "log/backend/daily.log",
+		MaxSize:    500,
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   true,
+	})
+
+	golog.Info(os.Getenv("ENV"))
 	settings.Init()
 	db.InitDB()
 	controllers.Init()
@@ -23,17 +33,22 @@ func main() {
 	server := tcp_server.NewWithTLS(":9999", settings.Get().ServerCertPath, settings.Get().ServerKeyPath)
 
 	server.OnNewClient(func(c *tcp_server.Client) {
-		fmt.Println("Client connect")
-		fmt.Println(c)
+		golog.Info("Client connect")
 	})
 	server.OnNewMessage(func(c *tcp_server.Client, message string) {
-		fmt.Println(message)
+		defer func() {
+			if r := recover(); r != nil {
+				golog.Error("An error has been recovered")
+				golog.Error(r)
+			}
+		}()
+		golog.Info("Receive client message")
+		golog.Info(message)
 		// new message received
 		var cmd models.Command
 		err := json.Unmarshal([]byte(message), &cmd)
 		if err != nil {
-			fmt.Println(message)
-			c.Send(message)
+			golog.Error("Error parsing message")
 		} else {
 			if cmd.Action == constants.JOIN {
 				controllers.JoinRoom(cmd, c)
@@ -47,8 +62,7 @@ func main() {
 	})
 	server.OnClientConnectionClosed(func(c *tcp_server.Client, err error) {
 		// connection with client lost
-		fmt.Println("Client close")
-		fmt.Println(c)
+		golog.Info("Client disconnected")
 		controllers.HandleDisconnect(c)
 	})
 

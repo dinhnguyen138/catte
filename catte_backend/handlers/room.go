@@ -9,7 +9,9 @@ import (
 	"github.com/dinhnguyen138/catte/catte_backend/constants"
 	"github.com/dinhnguyen138/catte/catte_backend/db"
 	"github.com/dinhnguyen138/catte/catte_backend/models"
+	"github.com/dinhnguyen138/catte/catte_backend/utilities"
 	"github.com/dinhnguyen138/tcp_server"
+	"github.com/kataras/golog"
 )
 
 type Room struct {
@@ -57,8 +59,7 @@ func (room *Room) HandleCommand(command models.Command) {
 		room.newGame()
 		break
 	case constants.PLAY, constants.FOLD:
-		fmt.Println("XXXX")
-		room.play(command.Action, command.Index, command.Data)
+		room.play(command.Action, command.Index, command.Data, false)
 		break
 	}
 }
@@ -67,7 +68,7 @@ func (room *Room) KickUserCallback(callback func(roomId string, index int)) {
 	room.kickUser = callback
 }
 
-func (room *Room) SendBroadcast(command string, data interface{}) {
+func (room *Room) sendBroadcast(command string, data interface{}) {
 	var stringData string
 	switch data.(type) {
 	case string:
@@ -77,13 +78,14 @@ func (room *Room) SendBroadcast(command string, data interface{}) {
 		temp, _ := json.Marshal(data)
 		stringData = string(temp)
 	}
+	golog.Info("Broadcast message" + string(stringData))
 	message := models.ResponseCommand{command, string(stringData)}
 	for i := 0; i < len(room.players); i++ {
 		room.players[i].sendCommand(message)
 	}
 }
 
-func (room *Room) SendUnicast(index int, command string, data interface{}) {
+func (room *Room) sendUnicast(index int, command string, data interface{}) {
 	var stringData string
 	switch data.(type) {
 	case string:
@@ -93,23 +95,10 @@ func (room *Room) SendUnicast(index int, command string, data interface{}) {
 		temp, _ := json.Marshal(data)
 		stringData = string(temp)
 	}
+	golog.Infof("Unicast message to %v", index)
+	golog.Info("Message content: " + string(stringData))
 	message := models.ResponseCommand{command, string(stringData)}
 	room.players[index].sendCommand(message)
-}
-
-func SendClient(c *tcp_server.Client, command string, data interface{}) {
-	var stringData string
-	switch data.(type) {
-	case string:
-		stringData = data.(string)
-		break
-	default:
-		temp, _ := json.Marshal(data)
-		stringData = string(temp)
-	}
-	message := models.ResponseCommand{command, string(stringData)}
-	resp, _ := json.Marshal(message)
-	c.Send(string(resp) + "\n")
 }
 
 func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
@@ -118,51 +107,62 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 	json.Unmarshal([]byte(data), &playerInfo)
 
 	for i := 0; i < len(room.players); i++ {
+		// Check whether this is a new user or a disconnected user
 		if room.players[i].Info.Id == userId {
-			fmt.Println("Player reconnected " + userId)
+			golog.Info("Player reconnect, update info")
 			room.players[i].Disconnected = false
 			room.players[i].client = c
 			index = i
 			break
 		}
 	}
+	// New player
 	if index == -1 {
+		golog.Info("New player join room")
 		if len(room.players) == room.maxPlayer {
-			SendClient(c, constants.ERROR, strconv.Itoa(constants.ERR_ROOM_FULL))
+			// Room is full, return error
+			golog.Error("Maximum player amount is reach, send back error")
+			utilities.SendClient(c, constants.ERROR, strconv.Itoa(constants.ERR_ROOM_FULL))
+			return
 		}
 		var index int
 		for i := 0; i < len(room.indexUsed); i++ {
+			// Find an empty seat for new player
 			if room.indexUsed[i] == false {
 				index = i
 				break
 			}
 		}
+		// Create player
 		room.indexUsed[index] = true
-		player := &Player{}
-		player.Info = playerInfo
-		player.Index = index
-		player.client = c
-		player.InGame = false
-		player.Disconnected = false
+		player := newPlayer(playerInfo, index, c)
 		room.players = append(room.players, player)
 		if len(room.players) == 1 {
+			// Update room's host
 			room.players[0].IsHost = true
 		}
 
-		// send list of current players to all player to update
-		room.SendUnicast(len(room.players)-1, constants.PLAYERS, room.players)
+		// Send list of current players to new player to update
+		room.sendUnicast(len(room.players)-1, constants.PLAYERS, room.players)
+
+		// Send new player to current players to update
 		for i := 0; i < len(room.players)-1; i++ {
-			room.SendUnicast(i, constants.NEWPLAYER, player)
+			room.sendUnicast(i, constants.NEWPLAYER, player)
 		}
+
+		// Update number player in room
 		db.UpdateRoom(room.id, len(room.players))
 		if len(room.players) == 2 {
+			golog.Info("Start game main loop")
 			room.timer = time.NewTimer(time.Second)
 			go room.mainloop()
 		}
 	} else {
-		room.SendUnicast(index, constants.PLAYERS, room.players)
+		// Send back list of players to current players
+		room.sendUnicast(index, constants.PLAYERS, room.players)
 		if room.inGame == true {
-			room.SendUnicast(index, constants.CARDS, room.players[index].cards)
+			// Send their current cards
+			room.sendUnicast(index, constants.CARDS, room.players[index].cards)
 		}
 	}
 }
@@ -170,25 +170,36 @@ func (room *Room) JoinRoom(userId string, data string, c *tcp_server.Client) {
 func (room *Room) LeaveRoom(index int) {
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i].Index == index {
-			changeHost := false
-			if room.players[i].IsHost == true {
-				changeHost = true
-			}
-			room.indexUsed[room.players[i].Index] = false
-			room.players = append(room.players[:i], room.players[i+1:]...)
-			db.UpdateRoom(room.id, len(room.players))
-			if len(room.players) == 0 {
+			// Receive leave command when in game, rejected
+			if room.inGame == true {
+				golog.Error("Received LEAVE while in game, rejected")
+				room.sendUnicast(index, constants.ERROR, strconv.Itoa(constants.ERR_LEAVE_IN_GAME))
 				break
 			}
+
+			// Update host if leave player is host
 			msg := models.LeaveMsg{Index: index}
-			if changeHost == true {
-				room.players[0].IsHost = true
-				msg.Host = room.players[0].Index
+			if room.players[i].IsHost == true {
+				room.players[i].IsHost = false
+				for j := 0; j < len(room.players); j++ {
+					if i == j {
+						continue
+					}
+					room.players[j].IsHost = true
+					msg.Host = room.players[j].Index
+					break
+				}
 			} else {
 				msg.Host = -1
 			}
 
-			room.SendBroadcast(constants.LEAVE, msg)
+			// Send leave message to all players
+			room.sendBroadcast(constants.LEAVE, msg)
+
+			// Update players in DB
+			room.indexUsed[room.players[i].Index] = false
+			room.players = append(room.players[:i], room.players[i+1:]...)
+			db.UpdateRoom(room.id, len(room.players))
 			break
 		}
 	}
@@ -215,7 +226,7 @@ func (room *Room) IsEmpty() bool {
 func (room *Room) Disconnect(index int) {
 	for i := 0; i < len(room.players); i++ {
 		if room.players[i].Index == index {
-			fmt.Println("Find disconnected user " + room.players[i].Info.Id)
+			golog.Info("Find disconnected user " + room.players[i].Info.Id)
 			room.players[i].Disconnected = true
 			if room.inGame == false {
 				room.kickUser(room.id, room.players[i].Index)
@@ -225,9 +236,9 @@ func (room *Room) Disconnect(index int) {
 	}
 }
 
-func (room *Room) KickDisconnectedUser() {
+func (room *Room) KickUsers() {
 	for i := 0; i < len(room.players); i++ {
-		if room.players[i].Disconnected == true {
+		if room.players[i].Disconnected == true || room.players[i].isInactive == true {
 			room.kickUser(room.id, room.players[i].Index)
 		}
 	}
@@ -238,33 +249,35 @@ func (room *Room) mainloop() {
 	for len(room.players) > 1 {
 		select {
 		case <-room.timer.C:
-			fmt.Print("Timeout at turn ")
-			fmt.Println(room.rowCount)
+			golog.Infof("Timeout at turn %v", room.turn)
 			if room.inGame == true {
 				if room.rowCount == 0 {
 					for i := 0; i < len(room.players); i++ {
 						if room.players[i].Index == room.turn {
-							room.play(constants.PLAY, room.turn, room.players[i].cards[0])
+							room.play(constants.PLAY, room.turn, room.players[i].cards[0], true)
 							break
 						}
 					}
 				} else {
 					for i := 0; i < len(room.players); i++ {
 						if room.players[i].Index == room.turn {
-							room.play(constants.FOLD, room.turn, room.players[i].cards[0])
+							room.play(constants.FOLD, room.turn, room.players[i].cards[0], true)
 							break
 						}
 					}
 				}
 			} else if room.cleanUp == false {
-				room.KickDisconnectedUser()
+				golog.Info("Kick disconnect and inactive users")
+				room.KickUsers()
 				// TODO: Send broadcast to user to info automatic newgame
 				if len(room.players) > 1 {
-					room.SendBroadcast(constants.INFORM, "")
+					golog.Info("Inform users prepare for new game")
+					room.sendBroadcast(constants.INFORM, "")
 					room.resetTimer(newGameTimeout)
 				}
 			} else {
 				if len(room.players) > 1 {
+					golog.Info("Start new game due to timeout")
 					room.newGame()
 				}
 			}
@@ -274,10 +287,7 @@ func (room *Room) mainloop() {
 
 }
 
-func (room *Room) newGame() {
-	if room.inGame == true || len(room.players) == 0 {
-		return
-	}
+func (room *Room) reset() {
 	room.turn = room.players[room.topCardIndex].Index
 	room.finalRowPlayer = 0
 	room.currentRow = 0
@@ -288,6 +298,15 @@ func (room *Room) newGame() {
 		room.players[i].InGame = true
 		room.players[i].Finalist = false
 	}
+}
+
+func (room *Room) newGame() {
+	if room.inGame == true || len(room.players) == 0 {
+		return
+	}
+	golog.Info("Reset room for new game")
+	room.reset()
+
 	deck := deal()
 	deck = shuffle(deck)
 	pos := 0
@@ -298,15 +317,15 @@ func (room *Room) newGame() {
 		pos += 7
 		fmt.Println(slice)
 		// send slice to client
-		room.SendUnicast(i, constants.CARDS, slice)
-		room.SendUnicast(i, constants.START, strconv.Itoa(room.turn))
+		room.sendUnicast(i, constants.CARDS, slice)
+		room.sendUnicast(i, constants.START, strconv.Itoa(room.turn))
 	}
 	room.inGame = true
 	room.cleanUp = false
 	room.resetTimer(turnTimeout)
 }
 
-func (room *Room) play(action string, index int, card string) {
+func (room *Room) play(action string, index int, card string, isAuto bool) {
 	room.timer.Stop()
 	room.rowCount++
 	fmt.Println(room.rowCount)
@@ -326,6 +345,7 @@ func (room *Room) play(action string, index int, card string) {
 				action = constants.FOLD
 				room.players[i].playCard(card)
 			}
+			room.players[i].isInactive = isAuto
 		}
 	}
 	row := room.currentRow
@@ -365,10 +385,10 @@ func (room *Room) play(action string, index int, card string) {
 
 	if room.inGame == true {
 		playData := models.PlayData{index, row, room.turn, (row != room.currentRow), card}
-		room.SendBroadcast(action, playData)
+		room.sendBroadcast(action, playData)
 
 		if len(eliminatedplayers) > 0 {
-			room.SendBroadcast(constants.ELIMINATED, eliminatedplayers)
+			room.sendBroadcast(constants.ELIMINATED, eliminatedplayers)
 		}
 	}
 
@@ -428,7 +448,7 @@ func (room *Room) calculateWinnerAmount(isDouble bool) {
 	db.UpdatePlayer(room.players[room.topCardIndex].Info.Id, room.players[room.topCardIndex].Info.Amount)
 	result = append(result, models.ResultMsg{room.players[room.topCardIndex].Index, totalWin, room.players[room.topCardIndex].Info.Amount})
 
-	room.SendBroadcast(constants.RESULT, result)
+	room.sendBroadcast(constants.RESULT, result)
 }
 
 func (room *Room) resetTimer(timeout int) {

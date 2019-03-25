@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/dinhnguyen138/catte/catte_backend/models"
 	"github.com/dinhnguyen138/tcp_server"
+	"github.com/kataras/golog"
 )
 
 type Player struct {
@@ -16,13 +16,14 @@ type Player struct {
 	Finalist     bool              `json:"finalist"`
 	IsHost       bool              `json:"ishost"`
 	Disconnected bool              `json:"disconnected"`
+	isInactive   bool
 	cards        []string
 	client       *tcp_server.Client
 }
 
 func (player *Player) sendCommand(cmd models.ResponseCommand) {
 	data, _ := json.Marshal(cmd)
-	fmt.Println("sendCommand" + string(data))
+	golog.Info("sendCommand" + string(data))
 	if player.Disconnected == false {
 		player.client.Send(string(data) + "\n")
 	}
@@ -38,4 +39,15 @@ func (player *Player) playCard(card string) bool {
 		}
 	}
 	return found
+}
+
+func newPlayer(info models.PlayerInfo, index int, c *tcp_server.Client) *Player {
+	player := new(Player)
+	player.Info = info
+	player.Index = index
+	player.InGame = false
+	player.Disconnected = false
+	player.isInactive = false
+	player.client = c
+	return player
 }

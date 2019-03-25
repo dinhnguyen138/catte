@@ -9,6 +9,7 @@ import (
 
 	"github.com/dinhnguyen138/catte/catte_backend/models"
 	"github.com/dinhnguyen138/catte/catte_backend/settings"
+	"github.com/dinhnguyen138/tcp_server"
 )
 
 func GetPublicIp() string {
@@ -35,4 +36,19 @@ func RegisterToService() {
 			break
 		}
 	}
+}
+
+func SendClient(c *tcp_server.Client, command string, data interface{}) {
+	var stringData string
+	switch data.(type) {
+	case string:
+		stringData = data.(string)
+		break
+	default:
+		temp, _ := json.Marshal(data)
+		stringData = string(temp)
+	}
+	message := models.ResponseCommand{command, string(stringData)}
+	resp, _ := json.Marshal(message)
+	c.Send(string(resp) + "\n")
 }
